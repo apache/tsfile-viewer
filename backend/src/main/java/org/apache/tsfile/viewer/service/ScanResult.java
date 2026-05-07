@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.tsfile.viewer.dto.HealthStatus;
 
 /**
- * Internal mutable model representing the scan result of a single TSFile.
+ * Internal mutable model representing the scan result of a single TsFile.
  *
  * <p>Used internally by the scan service and health checker. Converted to {@link
  * org.apache.tsfile.viewer.dto.ScanResultDTO} for API responses.

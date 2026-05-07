@@ -36,7 +36,7 @@ import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
 
 /**
- * Utility class for generating test TSFile files with various models.
+ * Utility class for generating test TsFile files with various models.
  *
  * <p>Supports creation of:
  *
@@ -50,7 +50,7 @@ import org.apache.tsfile.write.v4.TsFileWriterBuilder;
 public class TsFileTestUtils {
 
   /**
-   * Creates a table model TSFile with a single table and single device (identified by TAG columns).
+   * Creates a table model TsFile with a single table and single device (identified by TAG columns).
    *
    * @param outputPath the output file path
    * @param tableName the table name
@@ -107,7 +107,7 @@ public class TsFileTestUtils {
   }
 
   /**
-   * Creates a table model TSFile with a single table but multiple devices (distinguished by
+   * Creates a table model TsFile with a single table but multiple devices (distinguished by
    * different TAG column values).
    *
    * @param outputPath the output file path
@@ -189,9 +189,9 @@ public class TsFileTestUtils {
   }
 
   /**
-   * Creates a table model TSFile with a single table that can simulate multiple tables.
+   * Creates a table model TsFile with a single table that can simulate multiple tables.
    *
-   * <p>Note: TSFile V4 ITsFileWriter doesn't expose multi-table write API yet. This creates a
+   * <p>Note: TsFile V4 ITsFileWriter doesn't expose multi-table write API yet. This creates a
    * single table with different device_ids to simulate multiple table scenarios for testing.
    *
    * @param outputPath the output file path
@@ -257,7 +257,7 @@ public class TsFileTestUtils {
   }
 
   /**
-   * Creates a table model TSFile with data designed for aggregation and visualization testing.
+   * Creates a table model TsFile with data designed for aggregation and visualization testing.
    *
    * @param outputPath the output file path
    * @param tableName the table name
@@ -335,9 +335,9 @@ public class TsFileTestUtils {
   }
 
   /**
-   * Creates a tree model TSFile (traditional aligned timeseries format).
+   * Creates a tree model TsFile (traditional aligned timeseries format).
    *
-   * <p>Note: TSFile V4 primarily uses table model. This method creates a simple table that can be
+   * <p>Note: TsFile V4 primarily uses table model. This method creates a simple table that can be
    * queried similar to tree model for compatibility testing.
    *
    * @param outputPath the output file path
@@ -394,9 +394,9 @@ public class TsFileTestUtils {
   }
 
   /**
-   * Creates a tree model TSFile with multiple "devices" simulated in a single table.
+   * Creates a tree model TsFile with multiple "devices" simulated in a single table.
    *
-   * <p>Note: TSFile V4 ITsFileWriter doesn't expose multi-table write API yet. This creates a
+   * <p>Note: TsFile V4 ITsFileWriter doesn't expose multi-table write API yet. This creates a
    * single table with device_name column to distinguish devices for testing tree model scenarios.
    *
    * @param outputPath the output file path

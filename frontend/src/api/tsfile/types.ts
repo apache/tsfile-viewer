@@ -18,7 +18,7 @@
  */
 
 /**
- * TSFile Viewer API Types
+ * TsFile Viewer API Types
  * Migrated from frontend_old/src/api/types.ts
  */
 
@@ -100,7 +100,7 @@ export interface Chunk {
   maxValue?: string;
 }
 
-export interface TSFileMetadata {
+export interface TsFileMetadata {
   fileId: string;
   version: string;
   timeRange: TimeRange;

@@ -22,7 +22,7 @@ package org.apache.tsfile.viewer.dto;
 import java.util.List;
 
 /**
- * DTO representing a table schema in V4 table model TSFile.
+ * DTO representing a table schema in V4 table model TsFile.
  *
  * <p>Contains table name and lists of TAG and FIELD columns.
  */

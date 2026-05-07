@@ -1,4 +1,4 @@
-# TSFile Viewer 手动测试用例
+# TsFile Viewer 手动测试用例
 
 ## 测试概述
 
@@ -13,7 +13,7 @@
 4. 浏览器：Chrome 90+, Firefox 88+, 或 Safari 14+
 
 ### 测试数据准备
-- 准备一个包含多个设备和测点的TSFile
+- 准备一个包含多个设备和测点的TsFile
 - 时间范围覆盖至少24小时
 - 包含数值类型的测点（用于排序测试）
 
@@ -44,7 +44,7 @@
 
 **预期结果**：
 - ✅ 页面在3秒内加载完成
-- ✅ 顶部显示"TSFile 查看器"标题
+- ✅ 顶部显示"TsFile 查看器"标题
 - ✅ 左侧显示文件浏览器侧边栏
 - ✅ 主内容区显示"文件选择"和"最近访问"两个卡片
 - ✅ 右上角显示语言切换和暗黑模式按钮
@@ -679,7 +679,7 @@ grid gap-4 sm:grid-cols-1 md:grid-cols-2
 **目标**：验证大数据集的加载和显示性能
 
 **步骤**：
-1. 选择包含大量数据的TSFile（>10000行）
+1. 选择包含大量数据的TsFile（>10000行）
 2. 不使用筛选条件，加载所有数据
 3. 测量加载时间
 4. 测试列排序性能
@@ -798,7 +798,7 @@ grid gap-4 sm:grid-cols-1 md:grid-cols-2
 
 ## 附录：测试数据生成
 
-### 生成测试TSFile
+### 生成测试TsFile
 
 ```bash
 # 使用IoTDB CLI生成测试数据
@@ -810,7 +810,7 @@ CREATE TIMESERIES root.test.device1.humidity WITH DATATYPE=FLOAT;
 INSERT INTO root.test.device1(timestamp, temperature, humidity) VALUES(1, 25.5, 60);
 # ... 更多数据
 
-# 导出为TSFile
+# 导出为TsFile
 FLUSH;
 ```
 

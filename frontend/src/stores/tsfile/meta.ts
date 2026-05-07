@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import type { TSFileMetadata } from "@/api/tsfile/types";
+import type { TsFileMetadata } from "@/api/tsfile/types";
 
 /**
  * Meta Store - 元数据状态管理
@@ -27,15 +27,15 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 
 export const useMetaStore = defineStore("tsfile-meta", () => {
-  const metadataCache = ref<Map<string, TSFileMetadata>>(new Map());
+  const metadataCache = ref<Map<string, TsFileMetadata>>(new Map());
   const loading = ref<boolean>(false);
   const error = ref<null | string>(null);
 
-  function setMetadata(fileId: string, metadata: TSFileMetadata) {
+  function setMetadata(fileId: string, metadata: TsFileMetadata) {
     metadataCache.value.set(fileId, metadata);
   }
 
-  function getMetadata(fileId: string): TSFileMetadata | undefined {
+  function getMetadata(fileId: string): TsFileMetadata | undefined {
     return metadataCache.value.get(fileId);
   }
 

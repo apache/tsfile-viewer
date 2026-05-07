@@ -39,7 +39,7 @@ import org.apache.tsfile.viewer.tsfile.TsFileDataReader.DataRow;
 import org.apache.tsfile.viewer.tsfile.TsFileParser;
 
 /**
- * Real file validation tests using actual TSFile samples.
+ * Real file validation tests using actual TsFile samples.
  *
  * <p>Validates:
  *
@@ -50,7 +50,7 @@ import org.apache.tsfile.viewer.tsfile.TsFileParser;
  *   <li>TAG vs FIELD column identification
  * </ul>
  */
-@DisplayName("Real TSFile Validation Tests")
+@DisplayName("Real TsFile Validation Tests")
 class RealFileValidationTest {
 
   private TsFileParser parser;

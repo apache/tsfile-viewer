@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.dto;
 
 /**
- * DTO representing a RowGroup in a TSFile.
+ * DTO representing a RowGroup in a TsFile.
  *
  * <p>Contains metadata about a RowGroup including its index, device, time range, and chunk count.
  *

@@ -1,8 +1,8 @@
-# TSFile Viewer - Nuxt UI 重构总结
+# TsFile Viewer - Nuxt UI 重构总结
 
 ## 🎯 任务目标
 
-基于Nuxt UI设计系统，重构TSFile Viewer前端界面，确保符合：
+基于Nuxt UI设计系统，重构TsFile Viewer前端界面，确保符合：
 1. **易用性**: 响应式布局、快捷操作、清晰的视觉层次
 2. **可访问性**: 语义化组件、键盘导航、清晰的状态反馈
 3. **视觉一致性**: 统一的设计令牌、颜色系统、间距规范

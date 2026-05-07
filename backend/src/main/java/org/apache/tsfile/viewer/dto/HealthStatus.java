@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.dto;
 
 /**
- * Health status of a scanned TSFile.
+ * Health status of a scanned TsFile.
  *
  * <p>Validates: Requirement 2.4 (Severity classification)
  */

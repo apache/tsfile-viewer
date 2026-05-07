@@ -26,7 +26,7 @@ import jakarta.validation.constraints.NotBlank;
  *
  * <p>Validates: Requirement 1.1 (Directory scan initiation)
  *
- * @param directoryPath the directory path to scan for TSFile files
+ * @param directoryPath the directory path to scan for TsFile files
  */
 public record DirectoryScanRequest(
     @NotBlank(message = "directoryPath is required") String directoryPath) {}

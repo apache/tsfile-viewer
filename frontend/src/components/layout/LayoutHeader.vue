@@ -47,7 +47,7 @@ function navigateToScan() {
     <!-- Left: Logo + Title + Nav -->
     <div style="display: flex; align-items: center; gap: 24px; flex-shrink: 0;">
       <div style="font-size: 16px; font-weight: bold; color: #fff; white-space: nowrap; cursor: pointer;" @click="navigateToFiles">
-        TSFile Viewer
+        TsFile Viewer
       </div>
       <nav style="display: flex; align-items: center; gap: 4px;">
         <span

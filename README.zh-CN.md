@@ -1,14 +1,14 @@
-# TSFile 查看器
+# TsFile 查看器
 
 一个基于 Web 的应用程序，用于查看和分析 Apache TsFile 格式数据。使用 Vue 3 和 Spring Boot 4 构建。
 
 ## 功能特性
 
-- **文件管理**：浏览服务器目录和上传 TSFile 文件
-- **元数据查看**：显示完整的 TSFile 元数据，包括模式、设备、测点和统计信息
+- **文件管理**：浏览服务器目录和上传 TsFile 文件
+- **元数据查看**：显示完整的 TsFile 元数据，包括模式、设备、测点和统计信息
 - **数据预览**：支持高级筛选的分页数据表（时间范围、设备、测点、数值范围）
 - **数据可视化**：使用 ECharts 6 的交互式图表，支持多序列叠加、聚合和钻取
-- **树模型和表模型**：支持基于路径的树模型和关系型表模型两种 TSFile 格式
+- **树模型和表模型**：支持基于路径的树模型和关系型表模型两种 TsFile 格式
 - **导出功能**：将筛选后的数据导出为 CSV 或 JSON，将图表导出为 PNG 或 SVG
 - **性能优化**：块级读取、元数据缓存、大数据集自动降采样
 - **部署灵活性**：支持嵌入式（单个 JAR）和分离式（前端 + 后端）两种部署方式
@@ -18,7 +18,7 @@
 ### 后端
 
 - Spring Boot 4.0.1 with JDK 21
-- Apache TSFile 2.2.0
+- Apache TsFile 2.2.0
 - Caffeine 缓存用于元数据和读取器缓存
 - Maven 3.9+
 
@@ -138,7 +138,7 @@ tsfile-viewer/
 │   │   └── com/timecho/tsfile/viewer/
 │   │       ├── controller/   # REST API 端点
 │   │       ├── service/      # 业务逻辑
-│   │       ├── tsfile/       # TSFile 解析工具
+│   │       ├── tsfile/       # TsFile 解析工具
 │   │       ├── config/       # Spring 配置
 │   │       └── dto/          # 数据传输对象
 │   └── pom.xml
@@ -151,7 +151,7 @@ tsfile-viewer/
 │   │   ├── i18n/         # 国际化配置
 │   │   └── composables/  # Vue 组合式函数
 │   └── package.json
-├── tsfile-source/        # TSFile v2.2.0 源码（参考）
+├── tsfile-source/        # TsFile v2.2.0 源码（参考）
 ├── build-embedded.sh     # 嵌入式部署构建脚本
 ├── build-separate.sh     # 分离式部署构建脚本
 ├── docs/                 # 项目文档
@@ -166,7 +166,7 @@ tsfile-viewer/
 ### 1. 文件选择
 
 - 使用文件树浏览服务器目录
-- 上传本地 TSFile 文件（拖放或点击浏览）
+- 上传本地 TsFile 文件（拖放或点击浏览）
 - 从最近访问列表快速访问文件
 
 ### 2. 元数据查看
@@ -193,7 +193,7 @@ tsfile-viewer/
 ## API 端点
 
 - `GET /api/files/tree` - 浏览文件树
-- `POST /api/files/upload` - 上传 TSFile
+- `POST /api/files/upload` - 上传 TsFile
 - `GET /api/meta/{fileId}` - 获取元数据
 - `POST /api/data/preview` - 使用筛选条件预览数据
 - `POST /api/data/query` - 使用聚合查询图表数据
@@ -253,7 +253,7 @@ pnpm type-check
 
 131 个测试覆盖：
 
-- TSFile 解析工具
+- TsFile 解析工具
 - 数据读取和筛选
 - 缓存行为
 - REST API 端点

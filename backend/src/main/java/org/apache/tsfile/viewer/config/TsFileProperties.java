@@ -25,7 +25,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration properties for TSFile Viewer.
+ * Configuration properties for TsFile Viewer.
  *
  * <p>Binds to the {@code tsfile} prefix in application.yml and provides configuration for:
  *
@@ -44,7 +44,7 @@ public class TsFileProperties {
   /** List of allowed directories for file access. Paths outside this whitelist are rejected. */
   private List<String> allowedDirectories = new ArrayList<>();
 
-  /** Directory where uploaded TSFile files are stored. */
+  /** Directory where uploaded TsFile files are stored. */
   private String uploadDirectory;
 
   /** Cache configuration settings. */

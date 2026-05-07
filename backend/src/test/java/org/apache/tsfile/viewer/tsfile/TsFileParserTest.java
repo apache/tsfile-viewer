@@ -73,13 +73,13 @@ class TsFileParserTest {
   }
 
   /**
-   * Creates a test TSFile with sample data.
+   * Creates a test TsFile with sample data.
    *
    * @param fileName name of the test file
    * @param numDevices number of devices to create
    * @param numMeasurements number of measurements per device
    * @param numRows number of data rows per device
-   * @return path to the created TSFile
+   * @return path to the created TsFile
    */
   private Path createTestTsFile(String fileName, int numDevices, int numMeasurements, int numRows)
       throws Exception {
@@ -150,9 +150,9 @@ class TsFileParserTest {
   class ParseMetadataTests {
 
     @Test
-    @DisplayName("Should parse metadata from valid TSFile")
+    @DisplayName("Should parse metadata from valid TsFile")
     void shouldParseMetadataFromValidTsFile() throws Exception {
-      // Create a test TSFile with 2 devices, 3 measurements, 10 rows each
+      // Create a test TsFile with 2 devices, 3 measurements, 10 rows each
       Path tsFilePath = createTestTsFile("test_metadata.tsfile", 2, 3, 10);
 
       BasicMetadata metadata = tsFileParser.parseMetadata(tsFilePath);
@@ -175,11 +175,11 @@ class TsFileParserTest {
     }
 
     @Test
-    @DisplayName("Should throw exception for invalid TSFile")
+    @DisplayName("Should throw exception for invalid TsFile")
     void shouldThrowExceptionForInvalidTsFile() throws Exception {
-      // Create an invalid file (not a TSFile)
+      // Create an invalid file (not a TsFile)
       Path invalidPath = tempDir.resolve("invalid.tsfile");
-      Files.writeString(invalidPath, "This is not a valid TSFile");
+      Files.writeString(invalidPath, "This is not a valid TsFile");
 
       assertThatThrownBy(() -> tsFileParser.parseMetadata(invalidPath))
           .isInstanceOf(Exception.class);
@@ -192,7 +192,7 @@ class TsFileParserTest {
 
       BasicMetadata metadata = tsFileParser.parseMetadata(tsFilePath);
 
-      // Device count should be at least 1 (may vary based on TSFile internal structure)
+      // Device count should be at least 1 (may vary based on TsFile internal structure)
       assertThat(metadata.deviceCount()).isGreaterThanOrEqualTo(1);
     }
 
@@ -213,7 +213,7 @@ class TsFileParserTest {
   class ParseMeasurementsTests {
 
     @Test
-    @DisplayName("Should parse measurements from valid TSFile")
+    @DisplayName("Should parse measurements from valid TsFile")
     void shouldParseMeasurementsFromValidTsFile() throws Exception {
       Path tsFilePath = createTestTsFile("test_measurements.tsfile", 1, 3, 10);
 
@@ -271,7 +271,7 @@ class TsFileParserTest {
   class ParseRowGroupsTests {
 
     @Test
-    @DisplayName("Should parse RowGroups from valid TSFile")
+    @DisplayName("Should parse RowGroups from valid TsFile")
     void shouldParseRowGroupsFromValidTsFile() throws Exception {
       Path tsFilePath = createTestTsFile("test_rowgroups.tsfile", 2, 2, 10);
 
@@ -327,7 +327,7 @@ class TsFileParserTest {
   class ParseChunksTests {
 
     @Test
-    @DisplayName("Should parse Chunks from valid TSFile")
+    @DisplayName("Should parse Chunks from valid TsFile")
     void shouldParseChunksFromValidTsFile() throws Exception {
       Path tsFilePath = createTestTsFile("test_chunks.tsfile", 1, 2, 10);
 

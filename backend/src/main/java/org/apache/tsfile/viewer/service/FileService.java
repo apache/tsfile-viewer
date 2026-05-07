@@ -55,7 +55,7 @@ import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
  *
  * <ul>
  *   <li>Browsing directory tree with lazy loading
- *   <li>Uploading TSFile files with validation
+ *   <li>Uploading TsFile files with validation
  *   <li>Path validation against whitelist
  *   <li>File ID management and mapping
  * </ul>
@@ -192,7 +192,7 @@ public class FileService {
   }
 
   /**
-   * Uploads a TSFile and returns upload response with generated fileId.
+   * Uploads a TsFile and returns upload response with generated fileId.
    *
    * <p>Validates:
    *
@@ -345,7 +345,7 @@ public class FileService {
     }
 
     if (!filePath.toString().toLowerCase().endsWith(TSFILE_EXTENSION)) {
-      throw new InvalidFileException("Not a TSFile: " + decodedPath);
+      throw new InvalidFileException("Not a TsFile: " + decodedPath);
     }
 
     return filePath.toString();

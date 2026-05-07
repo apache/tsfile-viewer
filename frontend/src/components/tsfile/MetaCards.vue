@@ -22,7 +22,7 @@
  * MetaCards 组件 - 元数据基本信息卡片
  * 显示文件版本、时间范围、设备数量、测点数量等
  */
-import type { TSFileMetadata } from "@/api/tsfile/types";
+import type { TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -30,7 +30,7 @@ import { useI18n } from "vue-i18n";
 import { Card, Descriptions, Spin, Tag } from "antdv-next";
 
 interface Props {
-  metadata: TSFileMetadata | null;
+  metadata: TsFileMetadata | null;
   loading?: boolean;
 }
 

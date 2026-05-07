@@ -48,12 +48,12 @@ import jakarta.validation.Valid;
  * <p>Provides endpoints for:
  *
  * <ul>
- *   <li>GET /api/tables/{fileId} - Get list of tables in a TSFile
- *   <li>GET /api/tables/{fileId}/devices - Get list of devices in a TSFile
+ *   <li>GET /api/tables/{fileId} - Get list of tables in a TsFile
+ *   <li>GET /api/tables/{fileId}/devices - Get list of devices in a TsFile
  *   <li>POST /api/tables/query - Query data from a specific table
  * </ul>
  *
- * <p>These endpoints support multi-table TSFile scenarios where a single file may contain multiple
+ * <p>These endpoints support multi-table TsFile scenarios where a single file may contain multiple
  * tables with different schemas and devices.
  */
 @RestController
@@ -69,7 +69,7 @@ public class TableController {
   }
 
   /**
-   * Gets a list of all tables in the specified TSFile.
+   * Gets a list of all tables in the specified TsFile.
    *
    * <p>Returns table names, column information (including TAG and FIELD columns), and row counts
    * for each table.
@@ -87,7 +87,7 @@ public class TableController {
   }
 
   /**
-   * Gets a list of all unique devices in the specified TSFile.
+   * Gets a list of all unique devices in the specified TsFile.
    *
    * <p>Returns device identifiers, associated table names, TAG values, and data point counts.
    * Optionally filter by table name.

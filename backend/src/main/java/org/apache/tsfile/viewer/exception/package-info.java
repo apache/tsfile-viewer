@@ -18,7 +18,7 @@
  */
 
 /**
- * Custom exception classes for TSFile Viewer application.
+ * Custom exception classes for TsFile Viewer application.
  *
  * <p>Contains application-specific exceptions for error handling including file not found, invalid
  * file format, query timeout, and access denied scenarios.

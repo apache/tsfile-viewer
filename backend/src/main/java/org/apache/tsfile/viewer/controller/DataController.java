@@ -65,7 +65,7 @@ public class DataController {
   }
 
   /**
-   * Previews data from a TSFile with filtering and pagination.
+   * Previews data from a TsFile with filtering and pagination.
    *
    * @param request the data preview request
    * @return DataPreviewResponse with paginated data
@@ -81,7 +81,7 @@ public class DataController {
   }
 
   /**
-   * Queries chart data from a TSFile with optional aggregation.
+   * Queries chart data from a TsFile with optional aggregation.
    *
    * @param request the chart data request
    * @return ChartDataResponse with series data

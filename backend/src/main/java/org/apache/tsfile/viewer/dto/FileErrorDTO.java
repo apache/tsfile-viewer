@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.dto;
 
 /**
- * DTO representing a single error found during a TSFile health check.
+ * DTO representing a single error found during a TsFile health check.
  *
  * <p>Contains the error type, location within the file, human-readable description, and severity
  * level.

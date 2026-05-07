@@ -1,6 +1,6 @@
-# TSFile Viewer Testing Guide
+# TsFile Viewer Testing Guide
 
-This document describes the testing strategy and how to run tests for the TSFile Viewer application.
+This document describes the testing strategy and how to run tests for the TsFile Viewer application.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The project includes comprehensive tests for both backend and frontend:
 
 The backend has 131 passing tests covering:
 
-1. **TSFile Utilities** (`tsfile/` package)
+1. **TsFile Utilities** (`tsfile/` package)
    - TsFileParser: Metadata extraction, measurement parsing, RowGroup/Chunk parsing
    - TsFileDataReader: Data reading with filters, pagination, time range queries
    - TsFileReaderCache: Cache behavior, LRU eviction, concurrent access
@@ -211,9 +211,9 @@ describe('Data Preview Workflow', () => {
 
 ### Backend Test Data
 
-Test TSFiles are located in `backend/src/test/resources/`:
-- `test-tree-model.tsfile`: Sample Tree Model TSFile
-- `test-table-model.tsfile`: Sample Table Model TSFile
+Test TsFiles are located in `backend/src/test/resources/`:
+- `test-tree-model.tsfile`: Sample Tree Model TsFile
+- `test-table-model.tsfile`: Sample Table Model TsFile
 
 ### Frontend Test Data
 
@@ -422,7 +422,7 @@ When modifying code:
 
 ## Summary
 
-The TSFile Viewer project has comprehensive test coverage:
+The TsFile Viewer project has comprehensive test coverage:
 - **Backend**: 131 passing tests covering all layers
 - **Frontend**: Component, store, and API client tests
 - **Integration**: End-to-end workflow tests

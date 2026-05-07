@@ -1,4 +1,4 @@
-# TSFile Viewer
+# TsFile Viewer
 
 A web-based application for viewing and analyzing Apache TsFile format data. Built with Vue 3 and Spring Boot 4.
 
@@ -6,11 +6,11 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 
 ## Features
 
-- **File Management**: Browse server directories and upload TSFile files
-- **Metadata Viewing**: Display comprehensive TSFile metadata including schema, devices, measurements, and statistics
+- **File Management**: Browse server directories and upload TsFile files
+- **Metadata Viewing**: Display comprehensive TsFile metadata including schema, devices, measurements, and statistics
 - **Data Preview**: Paginated data tables with advanced filtering (time range, devices, measurements, value range)
 - **Data Visualization**: Interactive charts using ECharts 6 with multi-series overlay, aggregation, and drill-down
-- **Tree & Table Models**: Support for both Tree Model (path-based) and Table Model (relational) TSFile formats
+- **Tree & Table Models**: Support for both Tree Model (path-based) and Table Model (relational) TsFile formats
 - **Export**: Export filtered data as CSV or JSON, export charts as PNG or SVG
 - **Performance**: Chunk-level reading, metadata caching, automatic downsampling for large datasets
 - **Deployment Flexibility**: Support for both embedded (single JAR) and separate (frontend + backend) deployment
@@ -20,7 +20,7 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 ### Backend
 
 - Spring Boot 4.0.1 with JDK 21
-- Apache TSFile 2.2.0
+- Apache TsFile 2.2.0
 - Caffeine cache for metadata and reader caching
 - Maven 3.9+
 
@@ -139,7 +139,7 @@ tsfile-viewer/
 │   │   └── com/timecho/tsfile/viewer/
 │   │       ├── controller/   # REST API endpoints
 │   │       ├── service/      # Business logic
-│   │       ├── tsfile/       # TSFile parsing utilities
+│   │       ├── tsfile/       # TsFile parsing utilities
 │   │       ├── config/       # Spring configuration
 │   │       └── dto/          # Data transfer objects
 │   └── pom.xml
@@ -151,7 +151,7 @@ tsfile-viewer/
 │   │   ├── api/          # API client
 │   │   └── composables/  # Vue composables
 │   └── package.json
-├── tsfile-source/        # TSFile v2.2.0 source (reference)
+├── tsfile-source/        # TsFile v2.2.0 source (reference)
 ├── build-embedded.sh     # Embedded deployment build script
 ├── build-separate.sh     # Separate deployment build script
 ├── docs/                 # Project documentation
@@ -166,7 +166,7 @@ tsfile-viewer/
 ### 1. File Selection
 
 - Browse server directories using the file tree
-- Upload local TSFile files (drag-drop or click to browse)
+- Upload local TsFile files (drag-drop or click to browse)
 - Access recently viewed files from the recent files list
 
 ### 2. Metadata Viewing
@@ -193,7 +193,7 @@ tsfile-viewer/
 ## API Endpoints
 
 - `GET /api/files/tree` - Browse file tree
-- `POST /api/files/upload` - Upload TSFile
+- `POST /api/files/upload` - Upload TsFile
 - `GET /api/meta/{fileId}` - Get metadata
 - `POST /api/data/preview` - Preview data with filters
 - `POST /api/data/query` - Query chart data with aggregation
@@ -253,7 +253,7 @@ pnpm type-check
 
 131 tests covering:
 
-- TSFile parsing utilities
+- TsFile parsing utilities
 - Data reading and filtering
 - Cache behavior
 - REST API endpoints

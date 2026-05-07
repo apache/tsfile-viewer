@@ -18,7 +18,7 @@
  */
 
 /**
- * REST API controllers for TSFile Viewer.
+ * REST API controllers for TsFile Viewer.
  *
  * <p>This package contains all REST controllers that expose the API endpoints for file management,
  * metadata retrieval, data preview, and chart data queries.

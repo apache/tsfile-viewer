@@ -80,7 +80,7 @@ export const useChartStore = defineStore("tsfile-chart", () => {
 
     return {
       title: {
-        text: "TSFile Data Visualization",
+        text: "TsFile Data Visualization",
         left: "center",
       },
       tooltip: {

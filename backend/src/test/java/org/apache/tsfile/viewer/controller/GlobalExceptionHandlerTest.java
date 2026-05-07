@@ -121,7 +121,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("Should return 400 for InvalidFileException")
     void handleInvalidFileException_returns400() {
-      InvalidFileException ex = new InvalidFileException("Invalid TSFile format", "test.tsfile");
+      InvalidFileException ex = new InvalidFileException("Invalid TsFile format", "test.tsfile");
 
       ResponseEntity<ErrorResponse> response = handler.handleInvalidFileException(ex, request);
 
@@ -129,7 +129,7 @@ class GlobalExceptionHandlerTest {
       assertThat(response.getBody()).isNotNull();
       assertThat(response.getBody().getStatus()).isEqualTo(400);
       assertThat(response.getBody().getError()).isEqualTo("Bad Request");
-      assertThat(response.getBody().getMessage()).isEqualTo("Invalid TSFile format");
+      assertThat(response.getBody().getMessage()).isEqualTo("Invalid TsFile format");
       assertThat(response.getBody().getPath()).isEqualTo("/api/test");
     }
 
@@ -152,7 +152,7 @@ class GlobalExceptionHandlerTest {
     void handleEmptyFileException_returns400() {
       EmptyFileException ex =
           new EmptyFileException(
-              "The TSFile is valid but contains no data. It may be a newly created or empty file.");
+              "The TsFile is valid but contains no data. It may be a newly created or empty file.");
 
       ResponseEntity<ErrorResponse> response = handler.handleEmptyFileException(ex, request);
 
@@ -162,7 +162,7 @@ class GlobalExceptionHandlerTest {
       assertThat(response.getBody().getError()).isEqualTo("Bad Request");
       assertThat(response.getBody().getMessage())
           .isEqualTo(
-              "The TSFile is valid but contains no data. It may be a newly created or empty file.");
+              "The TsFile is valid but contains no data. It may be a newly created or empty file.");
       assertThat(response.getBody().getPath()).isEqualTo("/api/test");
     }
 
@@ -181,7 +181,7 @@ class GlobalExceptionHandlerTest {
       assertThat(response.getBody().getError()).isEqualTo("Bad Request");
       assertThat(response.getBody().getMessage())
           .isEqualTo(
-              "The file format is incompatible or corrupted. Please ensure it is a valid TSFile created with a compatible version.");
+              "The file format is incompatible or corrupted. Please ensure it is a valid TsFile created with a compatible version.");
       assertThat(response.getBody().getPath()).isEqualTo("/api/test");
     }
   }

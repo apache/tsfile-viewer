@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
  * DTO representing file information.
  *
  * <p>Used for displaying file details in the recent files list and file selection UI. Contains
- * metadata about both uploaded and server-side TSFile files.
+ * metadata about both uploaded and server-side TsFile files.
  *
  * <p>Validates: Requirement 1.7 (Recent files list)
  */

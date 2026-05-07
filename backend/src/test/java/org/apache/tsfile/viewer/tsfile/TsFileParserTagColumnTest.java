@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
 
 /**
- * Test for TAG column identification in V4 table model TSFile.
+ * Test for TAG column identification in V4 table model TsFile.
  *
- * <p>This test uses a real TSFile from the wind dataset to verify that TAG columns are correctly
+ * <p>This test uses a real TsFile from the wind dataset to verify that TAG columns are correctly
  * identified and parsed.
  */
 public class TsFileParserTagColumnTest {
@@ -76,7 +76,7 @@ public class TsFileParserTagColumnTest {
     // Skip test if file doesn't exist
     org.junit.jupiter.api.Assumptions.assumeTrue(fileExists, "Test file not found, skipping test");
 
-    // Parse measurements from the TSFile
+    // Parse measurements from the TsFile
     List<MeasurementDTO> measurements = parser.parseMeasurements(TEST_FILE_PATH);
 
     // Log all measurements with their categories

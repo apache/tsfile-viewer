@@ -29,7 +29,7 @@ import jakarta.validation.constraints.Size;
 /**
  * DTO for table-specific data query request.
  *
- * <p>Supports querying data from a specific table in a multi-table TSFile.
+ * <p>Supports querying data from a specific table in a multi-table TsFile.
  */
 public class TableDataRequest {
 

@@ -67,7 +67,7 @@ class TsFileHealthCheckerTest {
   }
 
   // -------------------------------------------------------------------------
-  // Valid TSFile tests — expect HEALTHY
+  // Valid TsFile tests — expect HEALTHY
   // -------------------------------------------------------------------------
 
   @Nested
@@ -160,7 +160,7 @@ class TsFileHealthCheckerTest {
     @Test
     void check_nonTsFile_returnsErrorWithFormatIncompatible() throws IOException {
       Path textFile = tempDir.resolve("not-a-tsfile.tsfile");
-      Files.writeString(textFile, "This is not a TSFile, just plain text content.");
+      Files.writeString(textFile, "This is not a TsFile, just plain text content.");
 
       ScanResult result = checker.check(textFile);
 

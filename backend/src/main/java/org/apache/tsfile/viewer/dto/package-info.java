@@ -18,7 +18,7 @@
  */
 
 /**
- * Data Transfer Objects for TSFile Viewer.
+ * Data Transfer Objects for TsFile Viewer.
  *
  * <p>This package contains DTOs used for API request/response serialization, including file
  * metadata, data preview, chart data, and error responses.

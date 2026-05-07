@@ -22,7 +22,7 @@
  * TableFilterPanel 组件 - 表模型筛选面板
  * 支持表选择、设备多选、字段多选、时间范围筛选、高级条件筛选
  */
-import type { AdvancedCondition, TSFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 
@@ -51,7 +51,7 @@ const { t } = useI18n();
 
 const loading = ref(true);
 const error = ref<null | string>(null);
-const metadata = ref<null | TSFileMetadata>(null);
+const metadata = ref<null | TsFileMetadata>(null);
 
 // 选择状态
 const selectedTable = ref<string | undefined>(undefined);
@@ -129,7 +129,7 @@ async function loadMetadata() {
 
   try {
     const response = await metaApi.getMetadata(props.fileId);
-    metadata.value = response as TSFileMetadata;
+    metadata.value = response as TsFileMetadata;
 
     // 自动选择第一个表
     if (tableOptions.value.length > 0) {

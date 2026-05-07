@@ -18,7 +18,7 @@
 -->
 
 <script setup lang="ts">
-import type { ChartDataRequest, ChartSeries, TimeRange, TSFileMetadata } from "@/api/tsfile/types";
+import type { ChartDataRequest, ChartSeries, TimeRange, TsFileMetadata } from "@/api/tsfile/types";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -42,7 +42,7 @@ const downsampled = ref(false);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, unknown>>({});
-const metadata = ref<TSFileMetadata | null>(null);
+const metadata = ref<TsFileMetadata | null>(null);
 const metaError = ref<string | null>(null);
 
 const isTableModel = computed(() => metadata.value?.tables && metadata.value.tables.length > 0);
@@ -78,7 +78,7 @@ async function loadMetadata() {
   if (!fileId.value) return;
   metaError.value = null;
   try {
-    metadata.value = (await metaApi.getMetadata(fileId.value)) as TSFileMetadata;
+    metadata.value = (await metaApi.getMetadata(fileId.value)) as TsFileMetadata;
   } catch (e: unknown) {
     metaError.value = e instanceof Error ? e.message : "Failed to load metadata";
   }

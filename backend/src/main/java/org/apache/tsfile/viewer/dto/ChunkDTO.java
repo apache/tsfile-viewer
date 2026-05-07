@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.dto;
 
 /**
- * DTO representing a Chunk in a TSFile.
+ * DTO representing a Chunk in a TsFile.
  *
  * <p>Contains metadata about a Chunk including its measurement, offset, size, and compression
  * ratio.

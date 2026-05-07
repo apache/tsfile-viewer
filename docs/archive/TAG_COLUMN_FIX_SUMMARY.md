@@ -8,7 +8,7 @@
 
 ## 根本原因
 
-在 TSFile V4 表模型中：
+在 TsFile V4 表模型中：
 
 - **TAG 列**是标识列（ID columns），用于标识数据来源，**不包含时间序列数据**
 - **FIELD 列**是测量列，包含实际的时间序列数据
@@ -107,7 +107,7 @@ FIELD columns: 9 ✅
 
 ## 技术要点
 
-### TSFile V4 API
+### TsFile V4 API
 
 - **`ITsFileReader`**: V4 API，支持表模型
 - **`TsFileSequenceReader`**: 通用 API，支持树模型和表模型
@@ -132,7 +132,7 @@ FIELD columns: 9 ✅
 - [x] 修复后端 TAG 列识别逻辑
 - [x] 创建单元测试验证修复
 - [ ] 更新前端显示（需要重启后端服务器并测试）
-- [ ] 添加更多测试用例覆盖不同的 TSFile 类型
+- [ ] 添加更多测试用例覆盖不同的 TsFile 类型
 - [ ] 考虑支持 ATTRIBUTE 列（如果需要）
 
 ## 影响范围

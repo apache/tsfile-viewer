@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * DTO for table list response.
  *
- * <p>Returns a list of tables/devices available in a TSFile with their column information.
+ * <p>Returns a list of tables/devices available in a TsFile with their column information.
  */
 public class TableListResponse {
 

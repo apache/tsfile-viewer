@@ -45,7 +45,7 @@ import org.apache.tsfile.viewer.service.ScanService;
 import jakarta.validation.Valid;
 
 /**
- * REST controller for TSFile scan operations.
+ * REST controller for TsFile scan operations.
  *
  * <p>Provides endpoints for:
  *
@@ -105,7 +105,7 @@ public class ScanController {
   }
 
   /**
-   * Performs a synchronous health check on a single TSFile.
+   * Performs a synchronous health check on a single TsFile.
    *
    * <p>Validates the file path and runs a full health check, returning the result immediately.
    *

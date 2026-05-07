@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.exception;
 
 /**
- * Exception thrown when a requested TSFile or resource is not found.
+ * Exception thrown when a requested TsFile or resource is not found.
  *
  * <p>Results in HTTP 404 Not Found response.
  *

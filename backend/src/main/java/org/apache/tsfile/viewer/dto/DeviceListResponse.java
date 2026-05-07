@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * DTO for device list response.
  *
- * <p>Returns a list of unique device identifiers available in a TSFile.
+ * <p>Returns a list of unique device identifiers available in a TsFile.
  */
 public class DeviceListResponse {
 

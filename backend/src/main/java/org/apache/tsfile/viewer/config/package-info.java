@@ -18,7 +18,7 @@
  */
 
 /**
- * Spring configuration classes for TSFile Viewer.
+ * Spring configuration classes for TsFile Viewer.
  *
  * <p>This package contains configuration classes for upload settings, directory whitelist, cache
  * configuration, and other Spring Boot settings.

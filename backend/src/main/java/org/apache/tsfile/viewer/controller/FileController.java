@@ -47,7 +47,7 @@ import org.apache.tsfile.viewer.service.FileService;
  *
  * <ul>
  *   <li>GET /api/files/tree - Browse directory tree with lazy loading
- *   <li>POST /api/files/upload - Upload TSFile files
+ *   <li>POST /api/files/upload - Upload TsFile files
  * </ul>
  *
  * <p>Validates: Requirement 8.1, 8.2 (File API endpoints)
@@ -97,12 +97,12 @@ public class FileController {
   }
 
   /**
-   * Uploads a TSFile.
+   * Uploads a TsFile.
    *
    * <p>Validates the file extension (.tsfile) and stores the file in the configured upload
    * directory. Returns a unique fileId that can be used to access the file.
    *
-   * @param file the TSFile to upload
+   * @param file the TsFile to upload
    * @return UploadResponse with fileId and metadata
    */
   @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.exception;
 
 /**
- * Exception thrown when a TSFile is valid but contains no data.
+ * Exception thrown when a TsFile is valid but contains no data.
  *
  * <p>This exception is used to distinguish between invalid/corrupted files and files that are
  * structurally valid but contain no actual time-series data.

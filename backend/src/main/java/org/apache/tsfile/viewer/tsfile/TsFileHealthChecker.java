@@ -56,7 +56,7 @@ import org.apache.tsfile.viewer.service.FileError;
 import org.apache.tsfile.viewer.service.ScanResult;
 
 /**
- * Core health-checking logic for TSFile files.
+ * Core health-checking logic for TsFile files.
  *
  * <p>This is a pure Java class with <b>no Spring dependencies</b>. It creates independent {@link
  * TsFileSequenceReader} instances for each check and does not interact with the existing {@link
@@ -73,7 +73,7 @@ public class TsFileHealthChecker {
   private static final Logger logger = LoggerFactory.getLogger(TsFileHealthChecker.class);
 
   /**
-   * Performs a full health check on a single TSFile following IoTDB's validation approach.
+   * Performs a full health check on a single TsFile following IoTDB's validation approach.
    *
    * <p>Executes the following steps in order:
    *
@@ -90,7 +90,7 @@ public class TsFileHealthChecker {
    *       </ul>
    * </ol>
    *
-   * @param filePath path to the TSFile to check
+   * @param filePath path to the TsFile to check
    * @return a {@link ScanResult} containing the health status and any errors found
    */
   public ScanResult check(Path filePath) {
@@ -98,7 +98,7 @@ public class TsFileHealthChecker {
     List<FileError> errors = new ArrayList<>();
     long fileSize = resolveFileSize(filePath);
 
-    // Pre-check: file must exist and have minimum size for a valid TSFile header
+    // Pre-check: file must exist and have minimum size for a valid TsFile header
     if (fileSize == 0) {
       errors.add(
           new FileError(
@@ -159,11 +159,11 @@ public class TsFileHealthChecker {
   }
 
   /**
-   * Performs a quick health check on a single TSFile.
+   * Performs a quick health check on a single TsFile.
    *
    * <p>Only checks file completeness and metadata availability without full data traversal.
    *
-   * @param filePath path to the TSFile to check
+   * @param filePath path to the TsFile to check
    * @return a {@link ScanResult} containing the health status and any errors found
    */
   public ScanResult quickCheck(Path filePath) {

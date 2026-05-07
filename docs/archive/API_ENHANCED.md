@@ -1,4 +1,4 @@
-# TSFile Viewer API Documentation - Enhanced Edition
+# TsFile Viewer API Documentation - Enhanced Edition
 
 ## Table of Contents
 1. [Model Compatibility](#model-compatibility)
@@ -33,7 +33,7 @@
 - **Columns**: Only FIELD columns (measurements)
 - **Use Cases**:
   - Time-series data organized by device paths
-  - Legacy TSFile compatibility
+  - Legacy TsFile compatibility
   - Simple device-measurement relationships
 
 ### API Unification
@@ -109,7 +109,7 @@ All endpoints work transparently with both models:
 The backend implements two-tier caching:
 
 1. **Reader Cache** (30 min TTL, 100 files)
-   - Caches TSFile readers to avoid repeated file opening
+   - Caches TsFile readers to avoid repeated file opening
    - Automatic eviction when capacity reached
    - Shared across all query types
 
@@ -169,12 +169,12 @@ GET /api/files/tree?root=/data/tsfiles&path=sensors/2024
 **UI Usage**:
 - `FileSelectionView.vue`: Directory tree navigation
 - `FileTree.vue`: Lazy-loaded tree component
-- Enable users to browse server directories and select TSFiles
+- Enable users to browse server directories and select TsFiles
 
 #### POST /api/files/upload
 **Used in**: File Selection View
 
-Upload a TSFile to server.
+Upload a TsFile to server.
 
 **Request**: multipart/form-data with file
 **Max size**: 100MB (configurable via `spring.servlet.multipart.max-file-size`)
@@ -191,7 +191,7 @@ Upload a TSFile to server.
 **Validation**:
 - Must have `.tsfile` extension
 - Size must not exceed limit
-- File must be valid TSFile format (validated on access)
+- File must be valid TsFile format (validated on access)
 
 ---
 
@@ -200,7 +200,7 @@ Upload a TSFile to server.
 #### GET /api/meta/{fileId}
 **Used in**: Metadata View, Filter Panel
 
-Retrieve comprehensive TSFile metadata.
+Retrieve comprehensive TsFile metadata.
 
 **Example**:
 ```
@@ -313,7 +313,7 @@ GET /api/meta/f7a3b2c1-4d5e-6f7g-8h9i-0j1k2l3m4n5o
 #### POST /api/data/preview
 **Used in**: Data Preview View
 
-Query and preview TSFile data with filtering and pagination.
+Query and preview TsFile data with filtering and pagination.
 
 **Table Model Example**:
 ```json
@@ -539,7 +539,7 @@ Query data optimized for visualization with aggregation and downsampling.
 #### 1. File Selection View (`FileSelectionView.vue`)
 **Primary APIs**:
 - `GET /api/files/tree` - Browse server directories
-- `POST /api/files/upload` - Upload local TSFiles
+- `POST /api/files/upload` - Upload local TsFiles
 
 **Integration**:
 ```typescript
@@ -725,7 +725,7 @@ async function loadChartData() {
 {
   "status": 404,
   "error": "Not Found",
-  "message": "TSFile not found for fileId: abc123",
+  "message": "TsFile not found for fileId: abc123",
   "path": "/api/meta/abc123"
 }
 ```
@@ -791,7 +791,7 @@ async function loadChartData() {
 
 2. **Use TypeScript types from API**
    ```typescript
-   import type { DataRow, DataPreviewRequest, TSFileMetadata } from '@/api/types'
+   import type { DataRow, DataPreviewRequest, TsFileMetadata } from '@/api/types'
    ```
 
 3. **Implement pagination properly**
@@ -839,7 +839,7 @@ async function loadChartData() {
    spring:
      servlet:
        multipart:
-         max-file-size: 500MB  # For large TSFiles
+         max-file-size: 500MB  # For large TsFiles
          max-request-size: 500MB
    ```
 

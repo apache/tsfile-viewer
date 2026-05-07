@@ -22,7 +22,7 @@ package org.apache.tsfile.viewer.dto;
 import java.util.Map;
 
 /**
- * DTO representing a single data row from a TSFile.
+ * DTO representing a single data row from a TsFile.
  *
  * <p>Validates: Requirement 3.1 (Data preview)
  */

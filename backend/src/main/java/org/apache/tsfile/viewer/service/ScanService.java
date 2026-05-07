@@ -107,7 +107,7 @@ public class ScanService {
    *
    * @param scanTaskCache Caffeine cache for storing scan tasks
    * @param pathValidationService service for validating paths against the whitelist
-   * @param tsFileHealthChecker health checker for TSFile files
+   * @param tsFileHealthChecker health checker for TsFile files
    * @param scanTaskExecutor async executor for directory scan tasks
    */
   public ScanService(
@@ -127,7 +127,7 @@ public class ScanService {
    * <p>Validates the directory path against the whitelist, creates a new {@link ScanTask}, stores
    * it in the cache, and triggers async execution via {@link ScanTaskExecutor}.
    *
-   * @param directoryPath the directory path to scan for TSFile files
+   * @param directoryPath the directory path to scan for TsFile files
    * @return the generated task ID
    * @throws AccessDeniedException if the path is not in the whitelist
    */
@@ -164,12 +164,12 @@ public class ScanService {
   }
 
   /**
-   * Performs a synchronous health check on a single TSFile.
+   * Performs a synchronous health check on a single TsFile.
    *
    * <p>Validates the file path against the whitelist, then delegates to {@link
    * TsFileHealthChecker#check(Path)} for the actual health check.
    *
-   * @param filePath the path of the TSFile to check
+   * @param filePath the path of the TsFile to check
    * @return the scan result as a DTO
    * @throws AccessDeniedException if the path is not in the whitelist
    */

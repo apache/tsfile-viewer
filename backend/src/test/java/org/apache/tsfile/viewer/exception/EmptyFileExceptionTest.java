@@ -30,7 +30,7 @@ class EmptyFileExceptionTest {
   @Test
   @DisplayName("Should create exception with message")
   void shouldCreateExceptionWithMessage() {
-    String message = "The TSFile is valid but contains no data";
+    String message = "The TsFile is valid but contains no data";
     EmptyFileException exception = new EmptyFileException(message);
 
     assertEquals(message, exception.getMessage());
@@ -40,7 +40,7 @@ class EmptyFileExceptionTest {
   @Test
   @DisplayName("Should create exception with message and cause")
   void shouldCreateExceptionWithMessageAndCause() {
-    String message = "The TSFile is valid but contains no data";
+    String message = "The TsFile is valid but contains no data";
     Throwable cause = new RuntimeException("Root cause");
     EmptyFileException exception = new EmptyFileException(message, cause);
 

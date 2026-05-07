@@ -1,4 +1,4 @@
-# TSFile Viewer 前端改造计划
+# TsFile Viewer 前端改造计划
 
 ## 概述
 

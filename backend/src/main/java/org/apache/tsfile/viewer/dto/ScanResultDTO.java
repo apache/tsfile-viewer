@@ -22,7 +22,7 @@ package org.apache.tsfile.viewer.dto;
 import java.util.List;
 
 /**
- * DTO representing the scan result of a single TSFile.
+ * DTO representing the scan result of a single TsFile.
  *
  * <p>Contains the file path, size, health status, list of detected errors, and scan duration.
  *

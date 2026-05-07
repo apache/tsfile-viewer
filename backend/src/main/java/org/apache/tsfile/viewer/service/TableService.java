@@ -55,8 +55,8 @@ import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
  * <p>Provides functionality for:
  *
  * <ul>
- *   <li>Listing tables in a TSFile
- *   <li>Listing devices (unique device identifiers) in a TSFile
+ *   <li>Listing tables in a TsFile
+ *   <li>Listing devices (unique device identifiers) in a TsFile
  *   <li>Querying data from specific tables with pagination
  *   <li>Supporting multi-table and multi-device scenarios
  * </ul>
@@ -73,7 +73,7 @@ public class TableService {
   }
 
   /**
-   * Gets a list of all tables in the specified TSFile.
+   * Gets a list of all tables in the specified TsFile.
    *
    * @param fileId the file identifier
    * @return TableListResponse containing table information
@@ -144,7 +144,7 @@ public class TableService {
   }
 
   /**
-   * Gets a list of all unique devices in the specified TSFile.
+   * Gets a list of all unique devices in the specified TsFile.
    *
    * @param fileId the file identifier
    * @param tableName optional table name filter
@@ -444,7 +444,7 @@ public class TableService {
    * <p>Iterates up to {@code MAX_COUNT_ROWS} rows. If the cap is reached, returns the cap value as
    * an estimate (the UI should treat this as "at least N rows").
    *
-   * @param reader the TSFile reader
+   * @param reader the TsFile reader
    * @param tableName the table name
    * @param columns the columns to query
    * @return row count (capped at MAX_COUNT_ROWS)

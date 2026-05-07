@@ -18,7 +18,7 @@
 -->
 
 <script setup lang="ts">
-import type { TSFileMetadata } from "@/api/tsfile/types";
+import type { TsFileMetadata } from "@/api/tsfile/types";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -36,7 +36,7 @@ const fileStore = useFileStore();
 const { t } = useI18n();
 
 const fileId = computed(() => route.params.fileId as string);
-const metadata = ref<TSFileMetadata | null>(null);
+const metadata = ref<TsFileMetadata | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const activeTab = ref("rowGroups");
@@ -83,7 +83,7 @@ async function loadMetadata() {
   loading.value = true;
   error.value = null;
   try {
-    metadata.value = (await metaApi.getMetadata(fileId.value)) as TSFileMetadata;
+    metadata.value = (await metaApi.getMetadata(fileId.value)) as TsFileMetadata;
     // Set default tab based on model type
     activeTab.value = (metadata.value?.tables && metadata.value.tables.length > 0) ? 'tables' : 'rowGroups';
   } catch (e: unknown) {

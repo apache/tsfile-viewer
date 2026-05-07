@@ -1,7 +1,7 @@
 {
   "tsfile": {
     "app": {
-      "title": "TSFile Viewer",
+      "title": "TsFile Viewer",
       "description": "Apache TsFile Format Data Viewing and Analysis Tool"
     },
     "nav": {
@@ -66,7 +66,7 @@
       "onlyTsFile": "Only .tsfile files are allowed",
       "fileTooLarge": "File too large, maximum 100MB",
       "noRecentFiles": "No recent files",
-      "emptyTreeHint": "No files found in the current directory. Please place .tsfile files into the data/ directory, or edit allowed-directories in application.yml to point to your TSFile directory, then restart the application.",
+      "emptyTreeHint": "No files found in the current directory. Please place .tsfile files into the data/ directory, or edit allowed-directories in application.yml to point to your TsFile directory, then restart the application.",
       "loadTreeError": "Unable to load file directory. Please check if the backend service is running.",
       "today": "Today",
       "yesterday": "Yesterday",
@@ -233,12 +233,12 @@
     "scan": {
       "title": "File Scan",
       "scanConfig": "Scan Configuration",
-      "description": "Scan TSFile files for health check and error detection",
+      "description": "Scan TsFile files for health check and error detection",
       "directoryScan": "Directory Scan",
       "fileScan": "Single File Scan",
       "directoryPlaceholder": "Enter directory path to scan...",
       "sidebarHint": "Tip: Click a folder in the sidebar tree to auto-fill the path",
-      "filePlaceholder": "Enter TSFile path to check...",
+      "filePlaceholder": "Enter TsFile path to check...",
       "quickScan": "Quick Scan",
       "startScan": "Start Scan",
       "cancelScan": "Cancel",
@@ -296,7 +296,7 @@
         "ERROR": "Error",
         "WARNING": "Warning"
       },
-      "noFilesFound": "No TSFile files found in directory",
+      "noFilesFound": "No TsFile files found in directory",
       "directoryUnauthorized": "Directory not authorized",
       "scanTimeout": "Scan timeout",
       "fileInUse": "File is in use by another process",
@@ -304,7 +304,7 @@
     },
     "error": {
       "fileNotFound": "File not found",
-      "invalidFile": "Invalid TSFile",
+      "invalidFile": "Invalid TsFile",
       "uploadFailed": "Upload failed",
       "loadFailed": "Load failed",
       "networkError": "Network error",

@@ -18,7 +18,7 @@
  */
 
 /**
- * TSFile Stores - 统一导出
+ * TsFile Stores - 统一导出
  */
 export { useChartStore } from "./chart";
 export { useFileStore } from "./file";

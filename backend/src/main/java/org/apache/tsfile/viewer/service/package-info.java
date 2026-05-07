@@ -18,7 +18,7 @@
  */
 
 /**
- * Business logic services for TSFile Viewer.
+ * Business logic services for TsFile Viewer.
  *
  * <p>This package contains service classes that implement the core business logic for file
  * management, metadata extraction, data filtering, and chart data aggregation.

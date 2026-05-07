@@ -1,6 +1,6 @@
-# TSFile Viewer Documentation Index
+# TsFile Viewer Documentation Index
 
-This directory contains the core documentation for the TSFile Viewer project.
+This directory contains the core documentation for the TsFile Viewer project.
 
 ## Core Documentation
 

@@ -1,4 +1,4 @@
-# TSFile 模型兼容性测试 - 实施总结
+# TsFile 模型兼容性测试 - 实施总结
 
 ## 任务完成情况
 
@@ -11,7 +11,7 @@
 
 #### 1. ✅ 测试数据生成器 (TsFileTestUtils.java)
 
-创建了完整的测试工具类，支持生成各种测试场景的TSFile文件:
+创建了完整的测试工具类，支持生成各种测试场景的TsFile文件:
 
 **表模型文件生成:**
 - `createTableModelSingleDevice` - 单表单设备
@@ -99,7 +99,7 @@
 #### 4. ✅ API文档更新 (API.md)
 
 **新增章节:**
-- TSFile Model Compatibility - 模型兼容性说明
+- TsFile Model Compatibility - 模型兼容性说明
   - V4 表模型: TAG列 + FIELD列结构
   - V3 树模型: device-measurement层次结构
   - API统一接口说明
@@ -162,7 +162,7 @@
 ### 1. 统一的查询接口
 - 表模型和树模型使用完全相同的API
 - 前端无需关心底层模型类型
-- 自动识别和适配TSFile版本
+- 自动识别和适配TsFile版本
 
 ### 2. 灵活的过滤机制
 - 设备/表名过滤: devices参数
@@ -280,7 +280,7 @@ const response = await axios.post('/api/data/preview', {
    - 内存使用监控
 
 ### 维护建议
-1. 定期更新测试数据生成器适配新的TSFile特性
+1. 定期更新测试数据生成器适配新的TsFile特性
 2. 监控CI测试结果，及时发现回归
 3. 根据实际使用反馈调整查询性能参数
 

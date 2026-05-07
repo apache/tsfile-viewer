@@ -1,6 +1,6 @@
-# TSFile Viewer User Guide
+# TsFile Viewer User Guide
 
-Welcome to TSFile Viewer! This guide will help you get started with viewing and analyzing your TSFile data.
+Welcome to TsFile Viewer! This guide will help you get started with viewing and analyzing your TsFile data.
 
 ## Table of Contents
 
@@ -22,19 +22,19 @@ Welcome to TSFile Viewer! This guide will help you get started with viewing and 
    - Development: `http://localhost:5173/view/`
    - Production: Your configured domain + `/view/`
 
-### Understanding TSFile Models
+### Understanding TsFile Models
 
-TSFile Viewer supports two data models:
+TsFile Viewer supports two data models:
 
 1. **Tree Model**: Traditional hierarchical path-based model
    - Device paths like `root.sensor1.temperature`
    - Suitable for IoT sensor data
 
-2. **Table Model**: Relational table-based model (TSFile V4)
+2. **Table Model**: Relational table-based model (TsFile V4)
    - Tables with TAG columns (identifiers) and FIELD columns (measurements)
    - Suitable for structured time-series data
 
-The application automatically detects which model your TSFile uses.
+The application automatically detects which model your TsFile uses.
 
 ## File Selection
 
@@ -49,7 +49,7 @@ The application automatically detects which model your TSFile uses.
 
 ### Uploading Files
 
-1. On the home page, find the "Upload TSFile" card on the right
+1. On the home page, find the "Upload TsFile" card on the right
 2. Either:
    - Drag and drop a `.tsfile` file onto the upload area
    - Click the upload area to browse and select a file
@@ -71,13 +71,13 @@ The "Recent Files" section shows your recently accessed files:
 
 ## Viewing Metadata
 
-After selecting a file, you'll see the metadata page with comprehensive information about your TSFile.
+After selecting a file, you'll see the metadata page with comprehensive information about your TsFile.
 
 ### Basic Information
 
 At the top, you'll see cards displaying:
 
-- **Version**: TSFile format version
+- **Version**: TsFile format version
 - **Time Range**: Start and end timestamps of the data
 - **Device Count**: Number of devices in the file
 - **Measurement Count**: Number of measurements
@@ -359,7 +359,7 @@ When your data exceeds the max points limit:
 
 ### Browser Compatibility
 
-TSFile Viewer works best with modern browsers:
+TsFile Viewer works best with modern browsers:
 
 - Chrome 90+
 - Firefox 88+
@@ -411,7 +411,7 @@ Compare data across devices:
 
 ## Conclusion
 
-TSFile Viewer provides a powerful yet intuitive interface for exploring your time-series data. Start with file selection, review metadata, preview data with filters, and create insightful visualizations.
+TsFile Viewer provides a powerful yet intuitive interface for exploring your time-series data. Start with file selection, review metadata, preview data with filters, and create insightful visualizations.
 
 For technical details, see:
 

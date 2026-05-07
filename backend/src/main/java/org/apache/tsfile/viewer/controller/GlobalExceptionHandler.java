@@ -50,7 +50,7 @@ import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Global exception handler for the TSFile Viewer application.
+ * Global exception handler for the TsFile Viewer application.
  *
  * <p>Provides consistent error responses across all REST endpoints using {@link ErrorResponse} DTO.
  * Handles both application-specific exceptions and common Spring exceptions.
@@ -149,7 +149,7 @@ public class GlobalExceptionHandler {
   /**
    * Handles EmptyFileException - returns 400 Bad Request.
    *
-   * <p>This exception is thrown when a TSFile is valid but contains no data. Returns a friendly
+   * <p>This exception is thrown when a TsFile is valid but contains no data. Returns a friendly
    * error message to help users understand the issue.
    */
   @ExceptionHandler(EmptyFileException.class)
@@ -171,16 +171,16 @@ public class GlobalExceptionHandler {
   /**
    * Handles NotCompatibleTsFileException - returns 400 Bad Request.
    *
-   * <p>This exception is thrown when a TSFile format is incompatible or corrupted. Returns a
+   * <p>This exception is thrown when a TsFile format is incompatible or corrupted. Returns a
    * friendly error message to help users understand the issue.
    */
   @ExceptionHandler(NotCompatibleTsFileException.class)
   public ResponseEntity<ErrorResponse> handleNotCompatibleTsFileException(
       NotCompatibleTsFileException ex, HttpServletRequest request) {
-    logger.warn("Incompatible TSFile format: {}", ex.getMessage());
+    logger.warn("Incompatible TsFile format: {}", ex.getMessage());
 
     String friendlyMessage =
-        "The file format is incompatible or corrupted. Please ensure it is a valid TSFile created with a compatible version.";
+        "The file format is incompatible or corrupted. Please ensure it is a valid TsFile created with a compatible version.";
 
     ErrorResponse response =
         ErrorResponse.builder()

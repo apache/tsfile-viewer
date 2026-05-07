@@ -73,7 +73,7 @@ class TsFileDataReaderTest {
     }
   }
 
-  /** Creates a test TSFile with sample data. */
+  /** Creates a test TsFile with sample data. */
   private void createTestTsFile(int rowCount) throws Exception {
     String tableName = "sensor_data";
 
@@ -308,7 +308,7 @@ class TsFileDataReaderTest {
   class GetTableNamesTests {
 
     @Test
-    @DisplayName("Should return table names from TSFile")
+    @DisplayName("Should return table names from TsFile")
     void shouldReturnTableNamesFromTsFile() throws Exception {
       createTestTsFile(5);
 

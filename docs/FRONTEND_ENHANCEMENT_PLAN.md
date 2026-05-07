@@ -5,16 +5,16 @@
 ## 概述
 
 后端已经实现了以下增强功能：
-1. **获取表列表 API**: `GET /api/tables/{fileId}` - 获取 TSFile 中所有表的信息
+1. **获取表列表 API**: `GET /api/tables/{fileId}` - 获取 TsFile 中所有表的信息
 2. **获取设备列表 API**: `GET /api/tables/{fileId}/devices` - 获取所有唯一设备标识
 3. **表数据查询 API**: `POST /api/tables/query` - 从特定表查询数据，支持高级分页
-4. **Tree Model 支持**: 后端自动检测并支持 V3/Legacy Tree Model TSFile 格式
+4. **Tree Model 支持**: 后端自动检测并支持 V3/Legacy Tree Model TsFile 格式
 
 ## Tree Model 支持 (新增)
 
 ### 后端实现
 
-后端 `TsFileDataReader` 已实现自动检测和处理两种 TSFile 模型：
+后端 `TsFileDataReader` 已实现自动检测和处理两种 TsFile 模型：
 
 - **Table Model (V4)**: 使用 `ITsFileReader.query()` API，支持 TAG/FIELD 列
 - **Tree Model (V3)**: 使用 `TsFileSequenceReader` + `QueryExpression` API

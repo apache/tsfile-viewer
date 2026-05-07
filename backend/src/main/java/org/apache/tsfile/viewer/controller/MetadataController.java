@@ -29,18 +29,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import org.apache.tsfile.viewer.dto.TSFileMetadataDTO;
+import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
 import org.apache.tsfile.viewer.service.MetadataService;
 
 /**
- * REST controller for TSFile metadata operations.
+ * REST controller for TsFile metadata operations.
  *
  * <p>Provides endpoints for:
  *
  * <ul>
- *   <li>GET /api/meta/{fileId} - Get complete TSFile metadata
+ *   <li>GET /api/meta/{fileId} - Get complete TsFile metadata
  * </ul>
  *
  * <p>Validates: Requirement 8.3 (Metadata endpoint)
@@ -58,20 +58,20 @@ public class MetadataController {
   }
 
   /**
-   * Gets complete metadata for a TSFile.
+   * Gets complete metadata for a TsFile.
    *
    * <p>Returns metadata including version, time range, device/measurement counts, and detailed
    * lists of measurements, RowGroups, and Chunks.
    *
    * @param fileId the file identifier
-   * @return TSFileMetadataDTO with complete metadata
+   * @return TsFileMetadataDTO with complete metadata
    */
   @GetMapping("/{fileId}")
-  public ResponseEntity<TSFileMetadataDTO> getMetadata(@PathVariable String fileId)
+  public ResponseEntity<TsFileMetadataDTO> getMetadata(@PathVariable String fileId)
       throws TsFileNotFoundException, AccessDeniedException, IOException {
     logger.debug("Getting metadata for fileId={}", fileId);
 
-    TSFileMetadataDTO metadata = metadataService.getMetadata(fileId);
+    TsFileMetadataDTO metadata = metadataService.getMetadata(fileId);
     return ResponseEntity.ok(metadata);
   }
 }

@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Utility class for reading data from TSFile files.
+ * Utility class for reading data from TsFile files.
  *
  * <p>Validates: Requirement 3.1, 3.2, 5.4 (Data reading, chunk-level access)
  */
@@ -214,7 +214,7 @@ public class TsFileDataReader {
     }
   }
 
-  /** Reads data from a TSFile with time range filtering and pagination. */
+  /** Reads data from a TsFile with time range filtering and pagination. */
   public DataReadResult readDataByTimeRange(
       File filePath, Long startTime, Long endTime, int limit, int offset) throws IOException {
     long effStart = startTime != null ? startTime : Long.MIN_VALUE;
@@ -787,7 +787,7 @@ public class TsFileDataReader {
   }
 
   /**
-   * Reads data from a tree model TSFile using TsFileReader with QueryExpression.
+   * Reads data from a tree model TsFile using TsFileReader with QueryExpression.
    *
    * <p>Tree model files don't have TableSchema, so we use the TsFileReader API with QueryExpression
    * to read device/measurement structure and data.

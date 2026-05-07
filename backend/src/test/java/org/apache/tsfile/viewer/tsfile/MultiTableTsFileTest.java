@@ -42,9 +42,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.apache.tsfile.viewer.dto.TableDTO;
 
 /**
- * Test multi-table support in TSFile V4.
+ * Test multi-table support in TsFile V4.
  *
- * <p>Creates a TSFile with 2 tables: 1. sensor_data: device_id (TAG), location (TAG), temperature
+ * <p>Creates a TsFile with 2 tables: 1. sensor_data: device_id (TAG), location (TAG), temperature
  * (FIELD), humidity (FIELD) 2. power_data: plant_id (TAG), voltage (FIELD), current (FIELD)
  */
 class MultiTableTsFileTest {
@@ -59,7 +59,7 @@ class MultiTableTsFileTest {
     multiTableFile = tempDir.resolve("multi-table.tsfile").toFile();
     parser = new TsFileParser();
 
-    // Create TSFile with 2 tables
+    // Create TsFile with 2 tables
     createMultiTableTsFile();
   }
 

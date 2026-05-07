@@ -26,6 +26,6 @@ import jakarta.validation.constraints.NotBlank;
  *
  * <p>Validates: Requirement 2.1 (Single file health check)
  *
- * @param filePath the path of the TSFile to check
+ * @param filePath the path of the TsFile to check
  */
 public record FileScanRequest(@NotBlank(message = "filePath is required") String filePath) {}

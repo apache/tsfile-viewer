@@ -23,7 +23,7 @@ import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
 
 /**
- * Internal mutable model representing a single error found during a TSFile health check.
+ * Internal mutable model representing a single error found during a TsFile health check.
  *
  * <p>Used internally by the scan service and health checker. Converted to {@link
  * org.apache.tsfile.viewer.dto.FileErrorDTO} for API responses.

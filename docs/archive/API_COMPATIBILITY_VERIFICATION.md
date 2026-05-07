@@ -17,13 +17,13 @@
 **控制器**: `MetadataController.java`
 ```java
 @GetMapping("/{fileId}")
-public ResponseEntity<TSFileMetadataDTO> getMetadata(@PathVariable String fileId)
+public ResponseEntity<TsFileMetadataDTO> getMetadata(@PathVariable String fileId)
 ```
 
 **前端实现**: `frontend/src/api/metadata.ts`
 ```typescript
 export const metadataApi = {
-  getMetadata(fileId: string): Promise<TSFileMetadata> {
+  getMetadata(fileId: string): Promise<TsFileMetadata> {
     return client.get(`/meta/${fileId}`)
   }
 }
@@ -31,7 +31,7 @@ export const metadataApi = {
 
 **验证结果**: ✅ 完全兼容
 - 参数类型匹配
-- 返回类型匹配 `TSFileMetadataDTO`
+- 返回类型匹配 `TsFileMetadataDTO`
 - FilterPanel、MetadataView正确使用此接口
 
 #### 2. 数据预览端点
@@ -230,12 +230,12 @@ const request = {
 
 **后端支持**: 
 - API文档明确说明支持两种模型
-- `TSFileMetadataDTO.tables` 字段可选（Table Model专用）
+- `TsFileMetadataDTO.tables` 字段可选（Table Model专用）
 
 **前端处理**:
 ```typescript
 // frontend/src/api/types.ts
-export interface TSFileMetadata {
+export interface TsFileMetadata {
   // ... 基础字段
   tables?: Table[] // 可选，Table Model专用
 }
@@ -339,10 +339,10 @@ client.interceptors.response.use(
 
 | 前端组件 | 使用的API端点 | 对应DTO | 验证状态 |
 |---------|--------------|---------|---------|
-| FilterPanel | GET /api/meta/{fileId} | TSFileMetadataDTO | ✅ |
+| FilterPanel | GET /api/meta/{fileId} | TsFileMetadataDTO | ✅ |
 | DataPreviewView | POST /api/data/preview | DataPreviewRequest/Response | ✅ |
 | ChartVisualizationView | POST /api/data/query | ChartDataRequest/Response | ✅ |
-| MetadataView | GET /api/meta/{fileId} | TSFileMetadataDTO | ✅ |
+| MetadataView | GET /api/meta/{fileId} | TsFileMetadataDTO | ✅ |
 | ChartPanel (refresh) | POST /api/data/query | ChartDataRequest/Response | ✅ |
 
 **所有接口调用均已验证，与后端定义完全一致。**

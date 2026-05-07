@@ -1,4 +1,4 @@
-# TSFile Viewer 用户手册 - 新功能补充
+# TsFile Viewer 用户手册 - 新功能补充
 
 本文档补充说明前端UI重构后新增的功能和改进的使用方式。完整的基础功能请参考 [USER_GUIDE.zh-CN.md](USER_GUIDE.zh-CN.md)。
 

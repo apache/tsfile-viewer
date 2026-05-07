@@ -22,7 +22,7 @@
  * TreeFilterPanel - 树模型筛选面板
  * 使用 antdv-next 组件
  */
-import type { AdvancedCondition, TSFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -51,7 +51,7 @@ const { t } = useI18n();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const metadata = ref<TSFileMetadata | null>(null);
+const metadata = ref<TsFileMetadata | null>(null);
 
 const selectedDevice = ref<string>("");
 const selectedMeasurements = ref<string[]>([]);
@@ -118,7 +118,7 @@ async function loadMetadata() {
   error.value = null;
   try {
     const response = await metaApi.getMetadata(props.fileId);
-    metadata.value = response as TSFileMetadata;
+    metadata.value = response as TsFileMetadata;
     if (deviceOptions.value.length > 0) {
       selectedDevice.value = deviceOptions.value[0]!.value;
     }

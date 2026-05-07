@@ -33,7 +33,7 @@ import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TableDTO;
 
 /**
- * 使用真实TSFile文件测试元数据读取功能
+ * 使用真实TsFile文件测试元数据读取功能
  *
  * <p>测试文件： 1. root.stock 数据文件 (4.7MB) - 用于正常功能测试 2. root.stock 空文件 (0B) - 用于健壮性测试
  */
@@ -41,11 +41,11 @@ class RealFilesMetadataTest {
 
   private final TsFileParser parser = new TsFileParser();
 
-  // Stock data TSFile (4.7MB)
+  // Stock data TsFile (4.7MB)
   private static final String STOCK_DATA_FILE =
       "/Users/critas/tsfile-samples/tsfiles/root.stock/150/2924/1768435200963-1-0-0.tsfile";
 
-  // Empty TSFile (0B) - for robustness testing
+  // Empty TsFile (0B) - for robustness testing
   private static final String EMPTY_FILE =
       "/Users/critas/tsfile-samples/tsfiles/root.stock/150/2924/1768894419960-2-0-0.tsfile";
 
@@ -79,7 +79,7 @@ class RealFilesMetadataTest {
         assertThat(table.getTotalColumns()).isGreaterThan(0);
       }
     } else {
-      System.out.println("\nNo tables found - this is a Tree Model TSFile (not Table Model)");
+      System.out.println("\nNo tables found - this is a Tree Model TsFile (not Table Model)");
       System.out.println("✓ Tree model files correctly return empty table list");
 
       // For tree model, show measurements and devices instead

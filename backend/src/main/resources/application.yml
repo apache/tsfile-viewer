@@ -41,7 +41,7 @@ spring:
       enabled: true
       port: 35729
 
-# TSFile Viewer Configuration
+# TsFile Viewer Configuration
 tsfile:
   allowed-directories: ${TSFILE_ALLOWED_DIRS:/Volumes/data/sources/tsfile-viewer/tsfile-samples}
   upload-directory: ${TSFILE_UPLOAD_DIR:/Volumes/data/sources/tsfile-viewer/tsfile-samples}

@@ -22,7 +22,7 @@ package org.apache.tsfile.viewer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/** Integration tests for TSFile Viewer application context loading. */
+/** Integration tests for TsFile Viewer application context loading. */
 @SpringBootTest
 class TsFileViewerApplicationTests {
 

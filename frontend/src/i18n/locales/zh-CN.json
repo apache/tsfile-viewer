@@ -1,7 +1,7 @@
 {
   "tsfile": {
     "app": {
-      "title": "TSFile 查看器",
+      "title": "TsFile 查看器",
       "description": "Apache TsFile 格式数据查看和分析工具"
     },
     "nav": {
@@ -66,7 +66,7 @@
       "onlyTsFile": "仅支持 .tsfile 文件",
       "fileTooLarge": "文件过大，最大支持 100MB",
       "noRecentFiles": "暂无最近访问的文件",
-      "emptyTreeHint": "当前目录下没有找到文件。请将 .tsfile 文件放入 data/ 目录，或修改 application.yml 中的 allowed-directories 指向 TSFile 文件所在目录，然后重启应用。",
+      "emptyTreeHint": "当前目录下没有找到文件。请将 .tsfile 文件放入 data/ 目录，或修改 application.yml 中的 allowed-directories 指向 TsFile 文件所在目录，然后重启应用。",
       "loadTreeError": "无法加载文件目录，请检查后端服务是否正常运行",
       "today": "今天",
       "yesterday": "昨天",
@@ -233,12 +233,12 @@
     "scan": {
       "title": "文件扫描",
       "scanConfig": "扫描配置",
-      "description": "扫描 TSFile 文件进行健康检查和错误检测",
+      "description": "扫描 TsFile 文件进行健康检查和错误检测",
       "directoryScan": "目录扫描",
       "fileScan": "单文件扫描",
       "directoryPlaceholder": "请输入要扫描的目录路径...",
       "sidebarHint": "提示：点击左侧目录树中的文件夹可自动填入路径",
-      "filePlaceholder": "请输入要检测的 TSFile 文件路径...",
+      "filePlaceholder": "请输入要检测的 TsFile 文件路径...",
       "quickScan": "快速扫描",
       "startScan": "开始扫描",
       "cancelScan": "取消",
@@ -296,7 +296,7 @@
         "ERROR": "错误",
         "WARNING": "警告"
       },
-      "noFilesFound": "目录中未找到 TSFile 文件",
+      "noFilesFound": "目录中未找到 TsFile 文件",
       "directoryUnauthorized": "目录未授权",
       "scanTimeout": "扫描超时",
       "fileInUse": "文件被其他进程占用",
@@ -304,7 +304,7 @@
     },
     "error": {
       "fileNotFound": "文件未找到",
-      "invalidFile": "无效的 TSFile 文件",
+      "invalidFile": "无效的 TsFile 文件",
       "uploadFailed": "上传失败",
       "loadFailed": "加载失败",
       "networkError": "网络错误",

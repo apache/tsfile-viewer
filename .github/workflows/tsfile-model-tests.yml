@@ -17,7 +17,7 @@
 # under the License.
 #
 
-name: TSFile Model Compatibility Tests
+name: TsFile Model Compatibility Tests
 
 on:
   push:

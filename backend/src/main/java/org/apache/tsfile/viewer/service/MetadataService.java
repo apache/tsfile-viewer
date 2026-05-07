@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.tsfile.viewer.config.TsFileProperties;
-import org.apache.tsfile.viewer.dto.TSFileMetadataDTO;
+import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
 import org.apache.tsfile.viewer.dto.TimeRange;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.EmptyFileException;
@@ -41,12 +41,12 @@ import org.apache.tsfile.viewer.tsfile.TsFileParser;
 import jakarta.annotation.PostConstruct;
 
 /**
- * Service for TSFile metadata operations.
+ * Service for TsFile metadata operations.
  *
  * <p>Provides functionality for:
  *
  * <ul>
- *   <li>Parsing and caching TSFile metadata
+ *   <li>Parsing and caching TsFile metadata
  *   <li>Extracting measurements, RowGroups, and Chunks
  *   <li>Caching metadata by fileId with TTL
  * </ul>
@@ -62,7 +62,7 @@ public class MetadataService {
   private final FileService fileService;
   private final TsFileParser tsFileParser;
 
-  private Cache<String, TSFileMetadataDTO> metadataCache;
+  private Cache<String, TsFileMetadataDTO> metadataCache;
 
   public MetadataService(
       TsFileProperties tsFileProperties, FileService fileService, TsFileParser tsFileParser) {
@@ -89,22 +89,22 @@ public class MetadataService {
   }
 
   /**
-   * Gets metadata for a TSFile by fileId.
+   * Gets metadata for a TsFile by fileId.
    *
    * <p>First checks the cache, then parses the file if not cached.
    *
    * @param fileId the file identifier
-   * @return TSFileMetadataDTO with complete metadata
+   * @return TsFileMetadataDTO with complete metadata
    * @throws TsFileNotFoundException if the file is not found
    * @throws AccessDeniedException if the path is not allowed
    * @throws IOException if the file cannot be read
    */
-  public TSFileMetadataDTO getMetadata(String fileId)
+  public TsFileMetadataDTO getMetadata(String fileId)
       throws TsFileNotFoundException, AccessDeniedException, IOException {
     logger.debug("Getting metadata for fileId={}", fileId);
 
     // Check cache first
-    TSFileMetadataDTO cached = metadataCache.getIfPresent(fileId);
+    TsFileMetadataDTO cached = metadataCache.getIfPresent(fileId);
     if (cached != null) {
       logger.debug("Returning cached metadata for fileId={}", fileId);
       return cached;
@@ -125,7 +125,7 @@ public class MetadataService {
       logger.warn("Cannot determine file size for {}: {}", filePath, e.getMessage());
     }
 
-    TSFileMetadataDTO metadata = parseMetadata(fileId, filePath);
+    TsFileMetadataDTO metadata = parseMetadata(fileId, filePath);
 
     // Cache the result
     metadataCache.put(fileId, metadata);
@@ -135,14 +135,14 @@ public class MetadataService {
   }
 
   /**
-   * Parses metadata from a TSFile.
+   * Parses metadata from a TsFile.
    *
    * @param fileId the file identifier
    * @param filePath the file path
-   * @return TSFileMetadataDTO with parsed metadata
+   * @return TsFileMetadataDTO with parsed metadata
    * @throws IOException if the file cannot be read
    */
-  private TSFileMetadataDTO parseMetadata(String fileId, String filePath) throws IOException {
+  private TsFileMetadataDTO parseMetadata(String fileId, String filePath) throws IOException {
     // Parse all metadata in a single pass (opens the file only once instead of 5-7 times)
     TsFileParser.AllMetadata all = tsFileParser.parseAll(filePath);
 
@@ -153,10 +153,10 @@ public class MetadataService {
         && all.chunks().isEmpty()
         && all.tables().isEmpty()) {
       throw new EmptyFileException(
-          "The TSFile is valid but contains no data. It may be a newly created or empty file.");
+          "The TsFile is valid but contains no data. It may be a newly created or empty file.");
     }
 
-    return TSFileMetadataDTO.builder()
+    return TsFileMetadataDTO.builder()
         .fileId(fileId)
         .version(all.basic().version())
         .timeRange(new TimeRange(all.basic().startTime(), all.basic().endTime()))

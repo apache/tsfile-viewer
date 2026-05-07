@@ -1,10 +1,10 @@
-# TSFile Viewer API Documentation
+# TsFile Viewer API Documentation
 
-This document describes the REST API endpoints provided by the TSFile Viewer backend.
+This document describes the REST API endpoints provided by the TsFile Viewer backend.
 
-## TSFile Model Compatibility
+## TsFile Model Compatibility
 
-TSFile Viewer fully supports both TSFile V4 **Table Model** and V3/legacy **Tree Model** formats:
+TsFile Viewer fully supports both TsFile V4 **Table Model** and V3/legacy **Tree Model** formats:
 
 ### Table Model (V4)
 
@@ -39,7 +39,7 @@ All query endpoints work transparently with both models:
 
 ### Auto-Detection
 
-The backend automatically detects the TSFile model type:
+The backend automatically detects the TsFile model type:
 
 1. **Table Model Detection**: If `TableSchema` entries exist, uses Table Model API (`ITsFileReader.query()`)
 2. **Tree Model Fallback**: If no `TableSchema` found, automatically switches to Tree Model API (`TsFileReader` with `QueryExpression`)
@@ -152,7 +152,7 @@ GET /api/files/tree?root=/data/tsfiles&path=2024/01
 
 ### POST /api/files/upload
 
-Upload a TSFile to the server.
+Upload a TsFile to the server.
 
 **Request:**
 
@@ -190,7 +190,7 @@ file: [binary data]
 
 ### GET /api/meta/{fileId}
 
-Get complete metadata for a TSFile.
+Get complete metadata for a TsFile.
 
 **Path Parameters:**
 
@@ -255,13 +255,13 @@ GET /api/meta/f7a3b2c1-4d5e-6f7g-8h9i-0j1k2l3m4n5o
 **Error Responses:**
 
 - `404 Not Found` - File not found
-- `500 Internal Server Error` - Failed to parse TSFile
+- `500 Internal Server Error` - Failed to parse TsFile
 
 ---
 
 ## Data Query Endpoints
 
-TSFile Viewer supports both **Table Model** (V4) and **Tree Model** (V3/legacy) TSFile formats:
+TsFile Viewer supports both **Table Model** (V4) and **Tree Model** (V3/legacy) TsFile formats:
 
 - **Table Model**: Uses TableSchema with TAG and FIELD columns. Tables organize data with TAG columns for metadata (device_id, location) and FIELD columns for measurements (temperature, humidity).
 - **Tree Model**: Traditional device-measurement hierarchy where each table represents a device with measurement columns only.
@@ -270,7 +270,7 @@ The API transparently handles both models using the same endpoints.
 
 ### POST /api/data/preview
 
-Preview TSFile data with filtering and pagination.
+Preview TsFile data with filtering and pagination.
 
 **Request Body:**
 
@@ -357,7 +357,7 @@ In Table Model, the device identifier is constructed as: `tablename.tagvalue1.ta
 
 **Multi-Table Query Example (V4 Table Model):**
 
-To query data from a specific table in a multi-table TSFile, use the `devices` parameter with the table name:
+To query data from a specific table in a multi-table TsFile, use the `devices` parameter with the table name:
 
 ```json
 {
@@ -393,7 +393,7 @@ To query data from a specific table in a multi-table TSFile, use the `devices` p
 
 ### POST /api/data/query
 
-Query TSFile data for chart visualization with aggregation and downsampling.
+Query TsFile data for chart visualization with aggregation and downsampling.
 
 **Supports both Table and Tree models** with automatic downsampling for large datasets and optional time-window aggregation.
 
@@ -527,11 +527,11 @@ When `totalPoints > maxPoints`, the LTTB (Largest Triangle Three Buckets) algori
 
 ## Table Operations Endpoints
 
-These endpoints provide enhanced support for multi-table TSFile scenarios, allowing you to list tables, discover devices, and query data from specific tables with advanced pagination.
+These endpoints provide enhanced support for multi-table TsFile scenarios, allowing you to list tables, discover devices, and query data from specific tables with advanced pagination.
 
 ### GET /api/tables/{fileId}
 
-Get a list of all tables in the specified TSFile with column information and row counts.
+Get a list of all tables in the specified TsFile with column information and row counts.
 
 **Path Parameters:**
 
@@ -578,7 +578,7 @@ GET /api/tables/f7a3b2c1-4d5e-6f7g-8h9i-0j1k2l3m4n5o
 
 ### GET /api/tables/{fileId}/devices
 
-Get a list of unique device identifiers in the specified TSFile.
+Get a list of unique device identifiers in the specified TsFile.
 
 **Path Parameters:**
 
@@ -717,7 +717,7 @@ Currently, no rate limiting is enforced. Future versions may implement rate limi
 The backend implements two levels of caching:
 
 1. **Metadata Cache**: Caches parsed metadata for 1 hour (configurable)
-2. **Reader Cache**: Caches TSFile readers for 30 minutes (configurable)
+2. **Reader Cache**: Caches TsFile readers for 30 minutes (configurable)
 
 Cache headers are not currently exposed in responses.
 
@@ -745,7 +745,7 @@ All errors follow a consistent format with:
 ### Upload and Query Workflow
 
 ```bash
-# 1. Upload a TSFile
+# 1. Upload a TsFile
 curl -X POST http://localhost:8080/api/files/upload \
   -F "file=@sensor1.tsfile"
 

@@ -22,14 +22,14 @@ package org.apache.tsfile.viewer.dto;
 import java.util.List;
 
 /**
- * DTO representing complete TSFile metadata.
+ * DTO representing complete TsFile metadata.
  *
- * <p>Contains all metadata information about a TSFile including version, time range, counts, and
+ * <p>Contains all metadata information about a TsFile including version, time range, counts, and
  * detailed lists of measurements, RowGroups, and Chunks.
  *
  * <p>Validates: Requirement 2 (Metadata display)
  */
-public class TSFileMetadataDTO {
+public class TsFileMetadataDTO {
 
   private String fileId;
   private String version;
@@ -44,7 +44,7 @@ public class TSFileMetadataDTO {
   private List<TableDTO> tables;
 
   /** Default constructor for JSON deserialization. */
-  public TSFileMetadataDTO() {}
+  public TsFileMetadataDTO() {}
 
   public String getFileId() {
     return fileId;
@@ -134,7 +134,7 @@ public class TSFileMetadataDTO {
     this.tables = tables;
   }
 
-  /** Builder class for creating TSFileMetadataDTO instances. */
+  /** Builder class for creating TsFileMetadataDTO instances. */
   public static class Builder {
     private String fileId;
     private String version;
@@ -203,8 +203,8 @@ public class TSFileMetadataDTO {
       return this;
     }
 
-    public TSFileMetadataDTO build() {
-      TSFileMetadataDTO dto = new TSFileMetadataDTO();
+    public TsFileMetadataDTO build() {
+      TsFileMetadataDTO dto = new TsFileMetadataDTO();
       dto.setFileId(fileId);
       dto.setVersion(version);
       dto.setTimeRange(timeRange);

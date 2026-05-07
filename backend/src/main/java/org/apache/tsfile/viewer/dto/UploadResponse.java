@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 /**
  * DTO for file upload response.
  *
- * <p>Returned after a successful TSFile upload, containing the generated fileId and upload
+ * <p>Returned after a successful TsFile upload, containing the generated fileId and upload
  * metadata.
  *
  * <p>Validates: Requirement 1.4, 8.2 (File upload response)

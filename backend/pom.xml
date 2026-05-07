@@ -33,7 +33,7 @@
   <groupId>org.apache.tsfile</groupId>
   <artifactId>tsfile-viewer</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>TSFile Viewer</name>
+  <name>TsFile Viewer</name>
   <description>Web-based application for viewing and analyzing Apache TsFile format data</description>
 
   <properties>
@@ -69,7 +69,7 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- TSFile Parser -->
+    <!-- TsFile Parser -->
     <dependency>
       <groupId>org.apache.tsfile</groupId>
       <artifactId>tsfile</artifactId>

@@ -1,6 +1,6 @@
-# TSFile Viewer Deployment Guide
+# TsFile Viewer Deployment Guide
 
-This document describes how to deploy the TSFile Viewer application in different modes.
+This document describes how to deploy the TsFile Viewer application in different modes.
 
 ## Table of Contents
 
@@ -157,7 +157,7 @@ build-separate.bat
 
    ```ini
    [Unit]
-   Description=TSFile Viewer Backend
+   Description=TsFile Viewer Backend
    After=network.target
 
    [Service]
@@ -329,7 +329,7 @@ VITE_API_BASE_URL=https://api.example.com/api
 - Reduce `query.max-result-size` to limit result sets
 - Increase `query.timeout-seconds` for large files
 - Use aggregation and downsampling for chart queries
-- Check TSFile file sizes and consider splitting large files
+- Check TsFile file sizes and consider splitting large files
 
 ## Support
 

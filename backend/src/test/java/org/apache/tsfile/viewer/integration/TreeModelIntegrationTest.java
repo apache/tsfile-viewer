@@ -40,7 +40,7 @@ import org.apache.tsfile.viewer.tsfile.TsFileDataReader.ReadFilter;
 import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
 
 /**
- * Integration tests for Tree Model TSFile data queries.
+ * Integration tests for Tree Model TsFile data queries.
  *
  * <p>Tests comprehensive data query scenarios for tree model (device-measurement structure)
  * including:
@@ -55,7 +55,7 @@ import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
  *   <li>Value range filtering
  * </ul>
  *
- * <p>Note: In TSFile V4, tree model is represented as tables without TAG columns, where each table
+ * <p>Note: In TsFile V4, tree model is represented as tables without TAG columns, where each table
  * represents a device.
  */
 class TreeModelIntegrationTest {

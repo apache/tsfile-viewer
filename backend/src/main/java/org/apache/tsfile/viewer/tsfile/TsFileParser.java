@@ -51,9 +51,9 @@ import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 
 /**
- * Utility class for parsing TSFile metadata.
+ * Utility class for parsing TsFile metadata.
  *
- * <p>Provides methods to extract metadata from TSFile files including version, time range,
+ * <p>Provides methods to extract metadata from TsFile files including version, time range,
  * device/measurement counts, measurement schema details, RowGroup metadata, and Chunk metadata.
  *
  * <p>Validates: Requirement 2.1, 2.3, 2.4, 2.5 (Metadata parsing)
@@ -63,7 +63,7 @@ public class TsFileParser {
 
   private static final Logger logger = LoggerFactory.getLogger(TsFileParser.class);
 
-  /** Result class containing parsed TSFile metadata. */
+  /** Result class containing parsed TsFile metadata. */
   public static class ParsedMetadata {
     private final String version;
     private final long startTime;
@@ -352,17 +352,17 @@ public class TsFileParser {
   }
 
   /**
-   * Parses metadata from a TSFile.
+   * Parses metadata from a TsFile.
    *
    * <p>Extracts version, time range, device count, measurement count, RowGroup count, and Chunk
-   * count from the specified TSFile.
+   * count from the specified TsFile.
    *
-   * @param filePath path to the TSFile
+   * @param filePath path to the TsFile
    * @return BasicMetadata containing the extracted metadata
-   * @throws IOException if the file cannot be read or is not a valid TSFile
+   * @throws IOException if the file cannot be read or is not a valid TsFile
    */
   public BasicMetadata parseMetadata(Path filePath) throws IOException {
-    logger.debug("Parsing metadata from TSFile: {}", filePath);
+    logger.debug("Parsing metadata from TsFile: {}", filePath);
 
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath.toString())) {
       ParsedMetadata parsed = parseMetadataInternal(reader);
@@ -460,24 +460,24 @@ public class TsFileParser {
    * Parses measurement schema details from a TsFileSequenceReader.
    *
    * <p>Extracts measurement name, data type, encoding, and compression algorithm for each unique
-   * measurement in the TSFile.
+   * measurement in the TsFile.
    *
    * @param reader the TsFileSequenceReader to use
    * @return list of MeasurementInfo containing measurement schema details
    * @throws IOException if the file cannot be read
    */
   /**
-   * Parse measurement metadata from a TSFile.
+   * Parse measurement metadata from a TsFile.
    *
    * <p>For V4 table model files, extracts column categories (TAG/FIELD) from TableSchema. For tree
    * model files, all measurements default to FIELD category.
    *
-   * @param reader TSFile reader
+   * @param reader TsFile reader
    * @return List of measurement information
    * @throws IOException If reading fails
    */
   public List<MeasurementInfo> parseMeasurements(TsFileSequenceReader reader) throws IOException {
-    logger.debug("Parsing measurements from TSFile");
+    logger.debug("Parsing measurements from TsFile");
 
     Map<String, MeasurementInfo> measurementMap = new LinkedHashMap<>();
 
@@ -630,17 +630,17 @@ public class TsFileParser {
   }
 
   /**
-   * Parses table schemas from a V4 table model TSFile.
+   * Parses table schemas from a V4 table model TsFile.
    *
    * <p>Extracts table structures with TAG and FIELD columns grouped by table. Returns empty list
    * for tree model files.
    *
-   * @param reader TSFile reader
+   * @param reader TsFile reader
    * @return List of TableInfo containing table schemas
    * @throws IOException If reading fails
    */
   public List<TableInfo> parseTables(TsFileSequenceReader reader) throws IOException {
-    logger.debug("Parsing table schemas from TSFile");
+    logger.debug("Parsing table schemas from TsFile");
 
     List<TableInfo> tableInfos = new ArrayList<>();
 
@@ -723,14 +723,14 @@ public class TsFileParser {
    * Parses RowGroup metadata from a TsFileSequenceReader.
    *
    * <p>Extracts RowGroup index, device, time range, and chunk count for each RowGroup in the
-   * TSFile.
+   * TsFile.
    *
    * @param reader the TsFileSequenceReader to use
    * @return list of RowGroupInfo containing RowGroup metadata
    * @throws IOException if the file cannot be read
    */
   public List<RowGroupInfo> parseRowGroups(TsFileSequenceReader reader) throws IOException {
-    logger.debug("Parsing RowGroups from TSFile");
+    logger.debug("Parsing RowGroups from TsFile");
 
     List<RowGroupInfo> rowGroups = new ArrayList<>();
     Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
@@ -782,14 +782,14 @@ public class TsFileParser {
    * Parses Chunk metadata from a TsFileSequenceReader.
    *
    * <p>Extracts measurement, file offset, size, compression ratio, device, time range, and point
-   * count for each Chunk in the TSFile.
+   * count for each Chunk in the TsFile.
    *
    * @param reader the TsFileSequenceReader to use
    * @return list of ChunkInfo containing Chunk metadata with compression stats
    * @throws IOException if the file cannot be read
    */
   public List<ChunkInfo> parseChunks(TsFileSequenceReader reader) throws IOException {
-    logger.debug("Parsing Chunks from TSFile");
+    logger.debug("Parsing Chunks from TsFile");
 
     List<ChunkInfo> chunks = new ArrayList<>();
     Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
@@ -942,7 +942,7 @@ public class TsFileParser {
   // ============== Unified Parse Method ==============
 
   /**
-   * Result of parsing all metadata from a TSFile in a single pass. Opens the file only once,
+   * Result of parsing all metadata from a TsFile in a single pass. Opens the file only once,
    * avoiding the overhead of 5+ separate file opens that the individual parse methods incur.
    */
   public record AllMetadata(
@@ -953,19 +953,19 @@ public class TsFileParser {
       List<org.apache.tsfile.viewer.dto.TableDTO> tables) {}
 
   /**
-   * Parses all metadata from a TSFile in a single pass, opening the file only once.
+   * Parses all metadata from a TsFile in a single pass, opening the file only once.
    *
    * <p>This is significantly more efficient than calling {@link #parseMetadata(String)}, {@link
    * #parseMeasurements(String)}, {@link #parseRowGroups(String)}, {@link #parseChunks(String)}, and
    * {@link #parseTables(String)} separately, which each open their own reader (5-7 file opens
    * total).
    *
-   * @param filePath path to the TSFile
+   * @param filePath path to the TsFile
    * @return AllMetadata containing all parsed metadata
    * @throws IOException if the file cannot be read
    */
   public AllMetadata parseAll(String filePath) throws IOException {
-    logger.debug("Parsing all metadata from TSFile in single pass: {}", filePath);
+    logger.debug("Parsing all metadata from TsFile in single pass: {}", filePath);
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
       ParsedMetadata parsed = parseMetadataInternal(reader);
       BasicMetadata basic =
@@ -1068,7 +1068,7 @@ public class TsFileParser {
 
   // ============== DTO Conversion Methods ==============
 
-  /** Record containing basic TSFile metadata. */
+  /** Record containing basic TsFile metadata. */
   public record BasicMetadata(
       String version,
       long startTime,
@@ -1079,9 +1079,9 @@ public class TsFileParser {
       int chunkCount) {}
 
   /**
-   * Parses basic metadata from a TSFile path string.
+   * Parses basic metadata from a TsFile path string.
    *
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return BasicMetadata record containing the extracted metadata
    * @throws IOException if the file cannot be read
    */
@@ -1090,9 +1090,9 @@ public class TsFileParser {
   }
 
   /**
-   * Parses measurements from a TSFile path string and returns DTOs.
+   * Parses measurements from a TsFile path string and returns DTOs.
    *
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return list of MeasurementDTO containing measurement schema details
    * @throws IOException if the file cannot be read
    */
@@ -1114,9 +1114,9 @@ public class TsFileParser {
   }
 
   /**
-   * Parses table schemas from a TSFile path string and returns DTOs.
+   * Parses table schemas from a TsFile path string and returns DTOs.
    *
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return list of TableDTO containing table schema details
    * @throws IOException if the file cannot be read
    */
@@ -1167,9 +1167,9 @@ public class TsFileParser {
   }
 
   /**
-   * Parses RowGroups from a TSFile path string and returns DTOs.
+   * Parses RowGroups from a TsFile path string and returns DTOs.
    *
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return list of RowGroupDTO containing RowGroup metadata
    * @throws IOException if the file cannot be read
    */
@@ -1191,9 +1191,9 @@ public class TsFileParser {
   }
 
   /**
-   * Parses Chunks from a TSFile path string and returns DTOs.
+   * Parses Chunks from a TsFile path string and returns DTOs.
    *
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return list of ChunkDTO containing Chunk metadata
    * @throws IOException if the file cannot be read
    */

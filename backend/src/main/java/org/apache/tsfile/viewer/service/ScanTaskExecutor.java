@@ -92,7 +92,7 @@ public class ScanTaskExecutor {
    * notifications).
    *
    * @param scanService the scan service for SSE event broadcasting
-   * @param tsFileHealthChecker health checker for TSFile files
+   * @param tsFileHealthChecker health checker for TsFile files
    * @param tsFileProperties configuration properties for timeout settings
    */
   public ScanTaskExecutor(

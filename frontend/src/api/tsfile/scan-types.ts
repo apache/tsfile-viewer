@@ -18,7 +18,7 @@
  */
 
 /**
- * TSFile Scan API Types
+ * TsFile Scan API Types
  */
 
 export type ScanTaskStatus =

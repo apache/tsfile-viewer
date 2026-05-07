@@ -34,7 +34,7 @@ import java.time.LocalDateTime;
  * @param status current task status
  * @param startTime time when the task started execution
  * @param endTime time when the task finished (null if still running)
- * @param totalFiles total number of TSFile files to scan
+ * @param totalFiles total number of TsFile files to scan
  * @param scannedFiles number of files scanned so far
  * @param currentFile name of the file currently being scanned (null if not running)
  * @param queuePosition position in the FIFO queue (0 means currently executing)

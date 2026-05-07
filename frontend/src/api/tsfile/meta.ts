@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import type { TSFileMetadata } from "./types";
+import type { TsFileMetadata } from "./types";
 import { apiClient } from "../request";
 
 export function getMetadata(fileId: string) {
-  return apiClient.get<unknown, TSFileMetadata>(`/meta/${fileId}`);
+  return apiClient.get<unknown, TsFileMetadata>(`/meta/${fileId}`);
 }

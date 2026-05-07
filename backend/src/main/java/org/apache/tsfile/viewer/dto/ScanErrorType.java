@@ -20,7 +20,7 @@
 package org.apache.tsfile.viewer.dto;
 
 /**
- * Types of errors that can be detected during a TSFile health check.
+ * Types of errors that can be detected during a TsFile health check.
  *
  * <p>Validates: Requirement 2.3 (Five error types identification)
  */

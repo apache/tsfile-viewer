@@ -37,7 +37,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 /**
- * Cache manager for TSFile readers using Caffeine cache.
+ * Cache manager for TsFile readers using Caffeine cache.
  *
  * <p>Provides thread-safe caching of TsFileSequenceReader instances with LRU eviction policy,
  * configurable max size and TTL. Ensures proper resource cleanup when readers are evicted.
@@ -130,7 +130,7 @@ public class TsFileReaderCache {
    * is not in the cache, a new reader is created and cached.
    *
    * @param fileId unique identifier for the file
-   * @param filePath path to the TSFile
+   * @param filePath path to the TsFile
    * @return TsFileSequenceReader for the specified file
    * @throws IOException if the file cannot be opened or read
    */
@@ -145,7 +145,7 @@ public class TsFileReaderCache {
    * is not in the cache, a new reader is created and cached.
    *
    * @param fileId unique identifier for the file
-   * @param filePath path to the TSFile as a string
+   * @param filePath path to the TsFile as a string
    * @return TsFileSequenceReader for the specified file
    * @throws IOException if the file cannot be opened or read
    */
@@ -163,7 +163,7 @@ public class TsFileReaderCache {
                   return new CachedReader(reader, filePath);
                 } catch (IOException e) {
                   logger.error("Failed to create TsFileSequenceReader for fileId={}", key, e);
-                  throw new RuntimeException("Failed to open TSFile: " + filePath, e);
+                  throw new RuntimeException("Failed to open TsFile: " + filePath, e);
                 }
               });
 

@@ -40,7 +40,7 @@ import org.apache.tsfile.viewer.tsfile.TsFileDataReader.ReadFilter;
 import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
 
 /**
- * Integration tests for Table Model TSFile data queries.
+ * Integration tests for Table Model TsFile data queries.
  *
  * <p>Tests comprehensive data query scenarios including:
  *

@@ -18,7 +18,7 @@
 -->
 
 <script setup lang="ts">
-import type { DataPreviewRequest, DataRow, TSFileMetadata } from "@/api/tsfile/types";
+import type { DataPreviewRequest, DataRow, TsFileMetadata } from "@/api/tsfile/types";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -53,7 +53,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const warnings = ref<string[]>([]);
 const currentFilters = ref<Record<string, unknown>>({});
-const metadata = ref<TSFileMetadata | null>(null);
+const metadata = ref<TsFileMetadata | null>(null);
 const metaError = ref<string | null>(null);
 
 const tagColumnNames = computed(() => {
@@ -91,7 +91,7 @@ async function loadMetadata() {
   loading.value = true;
   metaError.value = null;
   try {
-    metadata.value = (await metaApi.getMetadata(fileId.value)) as TSFileMetadata;
+    metadata.value = (await metaApi.getMetadata(fileId.value)) as TsFileMetadata;
     // Auto-trigger initial query after metadata loads
     loadData({ limit: currentLimit.value, offset: 0 });
   } catch (e: unknown) {

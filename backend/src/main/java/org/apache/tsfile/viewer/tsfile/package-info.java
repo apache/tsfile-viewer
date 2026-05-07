@@ -18,9 +18,9 @@
  */
 
 /**
- * TSFile parsing utilities and caching.
+ * TsFile parsing utilities and caching.
  *
- * <p>This package contains utilities for parsing TSFile format data, extracting metadata, reading
- * data with filters, and managing TSFile reader caching.
+ * <p>This package contains utilities for parsing TsFile format data, extracting metadata, reading
+ * data with filters, and managing TsFile reader caching.
  */
 package org.apache.tsfile.viewer.tsfile;

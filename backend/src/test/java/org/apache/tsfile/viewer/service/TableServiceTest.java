@@ -81,7 +81,7 @@ class TableServiceTest {
     }
   }
 
-  /** Creates a test TSFile with a single table. */
+  /** Creates a test TsFile with a single table. */
   private void createSingleTableTsFile(int rowCount) throws Exception {
     String tableName = "sensor_data";
 
@@ -109,7 +109,7 @@ class TableServiceTest {
     }
   }
 
-  /** Creates a test TSFile with multiple tables. */
+  /** Creates a test TsFile with multiple tables. */
   private void createMultiTableTsFile() throws Exception {
     // Create first table
     String tableName1 = "sensor_data";
@@ -137,7 +137,7 @@ class TableServiceTest {
     }
   }
 
-  /** Creates a test TSFile with TAG columns for device identification. */
+  /** Creates a test TsFile with TAG columns for device identification. */
   private void createTsFileWithTags(int deviceCount, int rowsPerDevice) throws Exception {
     String tableName = "device_data";
 
@@ -176,7 +176,7 @@ class TableServiceTest {
   class GetTableListTests {
 
     @Test
-    @DisplayName("Should return table list for single table TSFile")
+    @DisplayName("Should return table list for single table TsFile")
     void shouldReturnTableListForSingleTableFile() throws Exception {
       createSingleTableTsFile(10);
       when(fileService.getFilePath(anyString())).thenReturn(testTsFile.getAbsolutePath());
@@ -208,7 +208,7 @@ class TableServiceTest {
   class GetDeviceListTests {
 
     @Test
-    @DisplayName("Should return device list for TSFile with TAG columns")
+    @DisplayName("Should return device list for TsFile with TAG columns")
     void shouldReturnDeviceListForTsFileWithTags() throws Exception {
       createTsFileWithTags(3, 5);
       when(fileService.getFilePath(anyString())).thenReturn(testTsFile.getAbsolutePath());
@@ -221,7 +221,7 @@ class TableServiceTest {
     }
 
     @Test
-    @DisplayName("Should return single device for TSFile without TAG columns")
+    @DisplayName("Should return single device for TsFile without TAG columns")
     void shouldReturnSingleDeviceForTsFileWithoutTags() throws Exception {
       createSingleTableTsFile(10);
       when(fileService.getFilePath(anyString())).thenReturn(testTsFile.getAbsolutePath());
