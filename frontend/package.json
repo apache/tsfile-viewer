@@ -18,7 +18,7 @@
     "@antdv-next/happy-work-theme": "^1.0.0",
     "@antdv-next/icons": "^1.0.0-rc.2",
     "antdv-next": "^1.0.2",
-    "axios": "^1.13.2",
+    "axios": "^1.15.2",
     "dayjs": "^2.0.0-alpha.4",
     "echarts": "^6.0.0",
     "pinia": "^3.0.4",
