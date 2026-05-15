@@ -11,7 +11,7 @@
 - **树模型和表模型**：支持基于路径的树模型和关系型表模型两种 TsFile 格式
 - **导出功能**：将筛选后的数据导出为 CSV 或 JSON，将图表导出为 PNG 或 SVG
 - **性能优化**：块级读取、元数据缓存、大数据集自动降采样
-- **部署灵活性**：支持嵌入式（单个 JAR）和分离式（前端 + 后端）两种部署方式
+- **部署灵活性**：嵌入式部署为单个 JAR，内置前端资源
 
 ## 技术栈
 
@@ -25,11 +25,11 @@
 ### 前端
 
 - Vue 3.5.x with Composition API
-- Vite 8.x 构建工具
-- Nuxt UI 组件（基于 Tailwind CSS）
-- Pinia 2.x 状态管理
+- Vite 构建工具
+- Ant Design Vue (antdv-next) 组件库 + UnoCSS
+- Pinia 3.x 状态管理
 - ECharts 6.0.x 可视化
-- TypeScript 5.4.x+
+- TypeScript 5.9.x
 - Vue I18n 国际化支持
 
 ## 快速开始
@@ -67,30 +67,15 @@
 
 ### 生产构建
 
-#### 嵌入式部署（单个 JAR）
-
 ```bash
-# Linux/Mac
-./build-embedded.sh
-
-# Windows
-build-embedded.bat
+# 构建发布包（嵌入式 JAR + 脚本）
+./build-dist.sh
 
 # 运行
 java -jar backend/target/tsfile-viewer-*.jar
 ```
 
 访问地址：`http://localhost:8080/view/`
-
-#### 分离式部署
-
-```bash
-# Linux/Mac
-./build-separate.sh
-
-# Windows
-build-separate.bat
-```
 
 详细部署说明请参阅 [docs/DEPLOYMENT.zh-CN.md](docs/DEPLOYMENT.zh-CN.md)
 
@@ -135,12 +120,13 @@ VITE_API_BASE_URL=/api
 tsfile-viewer/
 ├── backend/              # Spring Boot Maven 项目
 │   ├── src/main/java/
-│   │   └── com/timecho/tsfile/viewer/
+│   │   └── org/apache/tsfile/viewer/
 │   │       ├── controller/   # REST API 端点
 │   │       ├── service/      # 业务逻辑
 │   │       ├── tsfile/       # TsFile 解析工具
 │   │       ├── config/       # Spring 配置
-│   │       └── dto/          # 数据传输对象
+│   │       ├── dto/          # 数据传输对象
+│   │       └── exception/    # 自定义异常
 │   └── pom.xml
 ├── frontend/             # Vue 3 + Vite SPA
 │   ├── src/
@@ -148,12 +134,12 @@ tsfile-viewer/
 │   │   ├── components/   # 可复用组件
 │   │   ├── stores/       # Pinia 状态管理
 │   │   ├── api/          # API 客户端
+│   │   ├── router/       # Vue Router 路由配置
 │   │   ├── i18n/         # 国际化配置
+│   │   ├── theme/        # 主题配置
 │   │   └── composables/  # Vue 组合式函数
 │   └── package.json
-├── tsfile-source/        # TsFile v2.3.0 源码（参考）
-├── build-embedded.sh     # 嵌入式部署构建脚本
-├── build-separate.sh     # 分离式部署构建脚本
+├── build-dist.sh         # 发布构建脚本
 ├── docs/                 # 项目文档
 │   ├── DEPLOYMENT.zh-CN.md # 部署指南（中文）
 │   ├── API.md            # API 文档

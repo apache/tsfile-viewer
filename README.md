@@ -13,7 +13,7 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 - **Tree & Table Models**: Support for both Tree Model (path-based) and Table Model (relational) TsFile formats
 - **Export**: Export filtered data as CSV or JSON, export charts as PNG or SVG
 - **Performance**: Chunk-level reading, metadata caching, automatic downsampling for large datasets
-- **Deployment Flexibility**: Support for both embedded (single JAR) and separate (frontend + backend) deployment
+- **Deployment Flexibility**: Embedded deployment as a single JAR with built-in frontend
 
 ## Technology Stack
 
@@ -27,11 +27,11 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 ### Frontend
 
 - Vue 3.5.x with Composition API
-- Vite 8.x build tool
-- Nuxt UI components (Tailwind CSS-based)
-- Pinia 2.x state management
+- Vite build tool
+- Ant Design Vue (antdv-next) components with UnoCSS
+- Pinia 3.x state management
 - ECharts 6.0.x for visualization
-- TypeScript 5.4.x+
+- TypeScript 5.9.x
 
 ## Quick Start
 
@@ -68,30 +68,15 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 
 ### Production Build
 
-#### Embedded Deployment (Single JAR)
-
 ```bash
-# Linux/Mac
-./build-embedded.sh
-
-# Windows
-build-embedded.bat
+# Build distribution package (embedded JAR + scripts)
+./build-dist.sh
 
 # Run
 java -jar backend/target/tsfile-viewer-*.jar
 ```
 
 Access at `http://localhost:8080/view/`
-
-#### Separate Deployment
-
-```bash
-# Linux/Mac
-./build-separate.sh
-
-# Windows
-build-separate.bat
-```
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.
 
@@ -136,12 +121,13 @@ VITE_API_BASE_URL=/api
 tsfile-viewer/
 ├── backend/              # Spring Boot Maven project
 │   ├── src/main/java/
-│   │   └── com/timecho/tsfile/viewer/
+│   │   └── org/apache/tsfile/viewer/
 │   │       ├── controller/   # REST API endpoints
 │   │       ├── service/      # Business logic
 │   │       ├── tsfile/       # TsFile parsing utilities
 │   │       ├── config/       # Spring configuration
-│   │       └── dto/          # Data transfer objects
+│   │       ├── dto/          # Data transfer objects
+│   │       └── exception/    # Custom exceptions
 │   └── pom.xml
 ├── frontend/             # Vue 3 + Vite SPA
 │   ├── src/
@@ -149,11 +135,12 @@ tsfile-viewer/
 │   │   ├── components/   # Reusable components
 │   │   ├── stores/       # Pinia state management
 │   │   ├── api/          # API client
+│   │   ├── router/       # Vue Router configuration
+│   │   ├── i18n/         # Internationalization
+│   │   ├── theme/        # Theme configuration
 │   │   └── composables/  # Vue composables
 │   └── package.json
-├── tsfile-source/        # TsFile v2.3.0 source (reference)
-├── build-embedded.sh     # Embedded deployment build script
-├── build-separate.sh     # Separate deployment build script
+├── build-dist.sh         # Distribution build script
 ├── docs/                 # Project documentation
 │   ├── DEPLOYMENT.md     # Deployment guide
 │   ├── API.md            # API documentation
