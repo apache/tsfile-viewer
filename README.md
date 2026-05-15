@@ -20,7 +20,7 @@ A web-based application for viewing and analyzing Apache TsFile format data. Bui
 ### Backend
 
 - Spring Boot 4.0.1 with JDK 21
-- Apache TsFile 2.2.0
+- Apache TsFile 2.3.0
 - Caffeine cache for metadata and reader caching
 - Maven 3.9+
 
@@ -151,7 +151,7 @@ tsfile-viewer/
 │   │   ├── api/          # API client
 │   │   └── composables/  # Vue composables
 │   └── package.json
-├── tsfile-source/        # TsFile v2.2.0 source (reference)
+├── tsfile-source/        # TsFile v2.3.0 source (reference)
 ├── build-embedded.sh     # Embedded deployment build script
 ├── build-separate.sh     # Separate deployment build script
 ├── docs/                 # Project documentation

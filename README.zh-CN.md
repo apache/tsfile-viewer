@@ -18,7 +18,7 @@
 ### 后端
 
 - Spring Boot 4.0.1 with JDK 21
-- Apache TsFile 2.2.0
+- Apache TsFile 2.3.0
 - Caffeine 缓存用于元数据和读取器缓存
 - Maven 3.9+
 
@@ -151,7 +151,7 @@ tsfile-viewer/
 │   │   ├── i18n/         # 国际化配置
 │   │   └── composables/  # Vue 组合式函数
 │   └── package.json
-├── tsfile-source/        # TsFile v2.2.0 源码（参考）
+├── tsfile-source/        # TsFile v2.3.0 源码（参考）
 ├── build-embedded.sh     # 嵌入式部署构建脚本
 ├── build-separate.sh     # 分离式部署构建脚本
 ├── docs/                 # 项目文档
