@@ -38,7 +38,7 @@
 
   <properties>
     <java.version>17</java.version>
-    <tsfile.version>2.2.0</tsfile.version>
+    <tsfile.version>2.3.0</tsfile.version>
     <caffeine.version>3.2.0</caffeine.version>
     <springdoc.version>2.8.0</springdoc.version>
     <google-java-format.version>1.22.0</google-java-format.version>
