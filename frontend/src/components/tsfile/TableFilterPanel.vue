@@ -21,6 +21,8 @@
 /**
  * TableFilterPanel 组件 - 表模型筛选面板
  * 支持表选择、设备多选、字段多选、时间范围筛选、高级条件筛选
+ *
+ * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
 import type { AdvancedCondition, Table, TsFileMetadata } from "@/api/tsfile/types";
 
@@ -29,6 +31,7 @@ import { computed, ref, watch } from "vue";
 import dayjs from "dayjs";
 import { useI18n } from "vue-i18n";
 import { Filter, RotateCcw, Search } from "lucide-vue-next";
+import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
@@ -289,67 +292,67 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
 </script>
 
 <template>
-  <div class="tc-panel table-filter-panel p-4">
+  <div class="tc-panel table-filter-panel overflow-hidden">
+    <!-- 加载指示条（细线脉冲动效，0 额外 DOM，不触发重排） -->
+    <div class="filter-loading-bar" :class="{ active: loading }" />
+
     <!-- 错误状态 -->
-    <div v-if="error" class="py-4 text-center text-danger">
+    <div v-if="error" class="px-4 py-4 text-center text-danger">
       {{ error }}
     </div>
 
-    <!-- 筛选表单 -->
-    <div v-else v-loading="loading" class="space-y-4">
+    <!-- 筛选表单：始终渲染，加载中仅禁用控件，保证 DOM 结构稳定 -->
+    <div v-show="!error" class="space-y-4 p-4">
       <!-- 第一行：表/设备/字段选择 -->
       <div class="flex flex-wrap items-center gap-4">
-        <!-- 表选择 -->
+        <!-- 表选择（单选 → el-select-v2） -->
         <div class="flex items-center gap-2">
-          <span class="whitespace-nowrap text-sm text-text-body"> {{ t("tsfile.data.selectTable") }}: </span>
-          <el-select
+          <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.selectTable") }}:</span>
+          <ElSelectV2
             v-model="selectedTable"
+            :options="tableOptions"
             :placeholder="t('tsfile.data.selectTablePlaceholder')"
+            :loading="loading"
             filterable
             style="width: 192px"
-          >
-            <el-option v-for="opt in tableOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
+            popper-class="v2-options-compact"
+          />
         </div>
 
         <!-- 设备多选 -->
         <div class="flex items-center gap-2">
-          <span class="whitespace-nowrap text-sm text-text-body"> {{ t("tsfile.data.devices") }}: </span>
-          <el-select
+          <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.devices") }}:</span>
+          <ElSelectV2
             v-model="selectedDevices"
+            :options="deviceOptions"
             multiple
             :placeholder="t('tsfile.data.selectDevicesPlaceholder')"
-            :disabled="!selectedTable"
+            :disabled="loading || !selectedTable"
+            :loading="loading"
             filterable
             collapse-tags
             :max-collapse-tags="1"
             style="min-width: 220px; max-width: 360px"
-          >
-            <el-option v-for="opt in deviceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
+            popper-class="v2-options-compact"
+          />
         </div>
 
         <!-- 字段多选 -->
         <div class="flex items-center gap-2">
-          <span class="whitespace-nowrap text-sm text-text-body"> {{ t("tsfile.data.fields") }}: </span>
-          <el-select
+          <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.fields") }}:</span>
+          <ElSelectV2
             v-model="selectedMeasurements"
+            :options="measurementSelectOptions"
             multiple
             :placeholder="t('tsfile.data.selectFieldsPlaceholder')"
-            :disabled="!selectedTable"
+            :disabled="loading || !selectedTable"
+            :loading="loading"
             filterable
             collapse-tags
             :max-collapse-tags="1"
             style="min-width: 192px; max-width: 360px"
-          >
-            <el-option
-              v-for="opt in measurementSelectOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-              :disabled="opt.disabled"
-            />
-          </el-select>
+            popper-class="v2-options-compact"
+          />
         </div>
       </div>
 
@@ -361,6 +364,7 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             v-for="range in quickTimeRanges"
             :key="range.value"
             size="small"
+            :disabled="loading"
             :type="selectedQuickRange === range.value ? 'primary' : 'default'"
             @click="selectQuickTimeRange(range.value)"
           >
@@ -378,6 +382,7 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             format="YYYY-MM-DD HH:mm:ss"
             :start-placeholder="t('tsfile.metadata.startTime')"
             :end-placeholder="t('tsfile.metadata.endTime')"
+            :disabled="loading"
             :disabled-date="disabledDate"
             style="width: 392px"
           />
@@ -385,18 +390,18 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
 
         <!-- 操作按钮 -->
         <div class="ml-auto flex items-center gap-2">
-          <el-button @click="showAdvancedDialog = true">
+          <el-button :disabled="loading" @click="showAdvancedDialog = true">
             <Filter :size="14" class="mr-1" />
             {{ t("tsfile.data.advancedFilter") }}
             <el-tag v-if="advancedConditions.length > 0" type="primary" class="ml-1">
               {{ advancedConditions.length }}
             </el-tag>
           </el-button>
-          <el-button type="primary" @click="applyFilters">
+          <el-button type="primary" :disabled="loading" @click="applyFilters">
             <Search :size="14" class="mr-1" />
             {{ t("tsfile.data.applyFilters") }}
           </el-button>
-          <el-button @click="resetFilters">
+          <el-button :disabled="loading" @click="resetFilters">
             <RotateCcw :size="14" class="mr-1" />
             {{ t("tsfile.common.reset") }}
           </el-button>
@@ -436,3 +441,37 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
     />
   </div>
 </template>
+
+<style scoped>
+/* 替代 v-loading 遮罩：顶部细线脉冲滚动条，0 额外 DOM 开销，不触发布局重排 */
+.filter-loading-bar {
+  height: 2px;
+  width: 100%;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-loading-bar.active {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.filter-loading-bar.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 50%,
+    transparent 100%
+  );
+  animation: filter-bar-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes filter-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+</style>

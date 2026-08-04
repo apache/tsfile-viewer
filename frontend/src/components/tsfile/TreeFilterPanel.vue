@@ -20,7 +20,7 @@
 <script setup lang="ts">
 /**
  * TreeFilterPanel - 树模型筛选面板
- * 使用 Element Plus 组件
+ * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
 import type { AdvancedCondition, TsFileMetadata } from "@/api/tsfile/types";
 
@@ -28,6 +28,7 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import dayjs from "dayjs";
+import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
@@ -207,41 +208,42 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
 </script>
 
 <template>
-  <div class="tc-panel p-4">
-    <div v-if="error" class="py-4 text-center text-danger">{{ error }}</div>
-    <div v-else v-loading="loading" class="space-y-4">
+  <div class="tc-panel overflow-hidden">
+    <!-- 加载指示条（细线脉冲动效，替代 v-loading 的遮罩 DOM 翻页，避免卡顿） -->
+    <div
+      class="filter-loading-bar"
+      :class="{ active: loading }"
+    />
+    <div v-if="error" class="px-4 py-4 text-center text-danger">{{ error }}</div>
+    <div v-show="!error" class="space-y-4 p-4">
       <div class="flex flex-wrap items-center gap-4">
         <div class="flex items-center gap-2">
           <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.metadata.device") }}:</span>
-          <el-select
+          <ElSelectV2
             v-model="selectedDevice"
+            :options="deviceOptions"
             filterable
             :placeholder="t('tsfile.metadata.searchByDevice')"
+            :loading="loading"
             style="width: 240px"
-          >
-            <el-option v-for="opt in deviceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
+            popper-class="v2-options-compact"
+          />
         </div>
         <div class="flex items-center gap-2">
           <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.measurements") }}:</span>
-          <el-select
+          <ElSelectV2
             v-model="selectedMeasurements"
+            :options="measurementSelectOptions"
             multiple
             filterable
             collapse-tags
             :max-collapse-tags="1"
             :placeholder="t('tsfile.data.selectMeasurementsPlaceholder')"
-            :disabled="!selectedDevice"
+            :disabled="loading || !selectedDevice"
+            :loading="loading"
             style="min-width: 220px; max-width: 360px"
-          >
-            <el-option
-              v-for="opt in measurementSelectOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-              :disabled="opt.disabled"
-            />
-          </el-select>
+            popper-class="v2-options-compact"
+          />
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-4">
@@ -250,6 +252,7 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             v-for="range in quickTimeRanges"
             :key="range.value"
             size="small"
+            :disabled="loading"
             :type="selectedQuickRange === range.value ? 'primary' : 'default'"
             @click="selectQuickTimeRange(range.value)"
             >{{ range.label }}</el-button
@@ -259,18 +262,19 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
           v-model="timeRange"
           type="datetimerange"
           format="YYYY-MM-DD HH:mm:ss"
+          :disabled="loading"
           :disabled-date="disabledDate"
           style="width: 392px"
         />
         <div class="ml-auto flex items-center gap-2">
-          <el-button @click="showAdvancedDialog = true">
+          <el-button :disabled="loading" @click="showAdvancedDialog = true">
             {{ t("tsfile.data.advancedFilter") }}
             <el-tag v-if="advancedConditions.length > 0" type="primary" class="ml-1">{{
               advancedConditions.length
             }}</el-tag>
           </el-button>
-          <el-button type="primary" @click="applyFilters">{{ t("tsfile.data.applyFilters") }}</el-button>
-          <el-button @click="resetFilters">{{ t("tsfile.common.reset") }}</el-button>
+          <el-button type="primary" :disabled="loading" @click="applyFilters">{{ t("tsfile.data.applyFilters") }}</el-button>
+          <el-button :disabled="loading" @click="resetFilters">{{ t("tsfile.common.reset") }}</el-button>
         </div>
       </div>
       <div
@@ -301,3 +305,37 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
     />
   </div>
 </template>
+
+<style scoped>
+.filter-loading-bar {
+  height: 2px;
+  width: 100%;
+  background: transparent;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-loading-bar.active {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.filter-loading-bar.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 50%,
+    transparent 100%
+  );
+  animation: filter-bar-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes filter-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+</style>

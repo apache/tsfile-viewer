@@ -32,6 +32,8 @@ export interface FileInfo {
   uploadTime: string;
 }
 
+const CURRENT_FILE_KEY = "tsfile-viewer-current-file";
+
 export const useFileStore = defineStore("tsfile-file", () => {
   const currentFileId = ref<null | string>(null);
   const currentFileName = ref<null | string>(null);
@@ -44,11 +46,41 @@ export const useFileStore = defineStore("tsfile-file", () => {
   function setCurrentFile(fileId: string, fileName: string) {
     currentFileId.value = fileId;
     currentFileName.value = fileName;
+    try {
+      localStorage.setItem(CURRENT_FILE_KEY, JSON.stringify({ fileId, fileName }));
+    } catch {
+      // 隐私模式 / localStorage 不可用时静默忽略
+    }
   }
 
   function clearCurrentFile() {
     currentFileId.value = null;
     currentFileName.value = null;
+    try {
+      localStorage.removeItem(CURRENT_FILE_KEY);
+    } catch {
+      // 忽略
+    }
+  }
+
+  /** 从 localStorage 恢复上次打开的 currentFile，供页面刷新后使用 */
+  function restoreCurrentFile() {
+    try {
+      const stored = localStorage.getItem(CURRENT_FILE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          parsed &&
+          typeof parsed.fileId === "string" &&
+          typeof parsed.fileName === "string"
+        ) {
+          currentFileId.value = parsed.fileId;
+          currentFileName.value = parsed.fileName;
+        }
+      }
+    } catch {
+      // 忽略
+    }
   }
 
   function addRecentFile(file: FileInfo) {
@@ -103,6 +135,7 @@ export const useFileStore = defineStore("tsfile-file", () => {
     autoStartScan,
     setCurrentFile,
     clearCurrentFile,
+    restoreCurrentFile,
     addRecentFile,
     loadRecentFiles,
     setUploadProgress,

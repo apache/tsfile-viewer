@@ -36,12 +36,19 @@ const router = useRouter();
 const fileStore = useFileStore();
 const { t } = useI18n();
 
+// 页面刷新时从 localStorage 恢复 currentFile，必须在 watcher (immediate) 之前执行
+fileStore.restoreCurrentFile();
+
 const fileId = computed(() => route.params.fileId as string);
 const displayFileName = computed(() => {
   if (fileStore.currentFileName) return fileStore.currentFileName;
+  // Uploaded-file fileId 是 UUID（最多 32 位 hex），不是 base64 编码的路径，
+  // 对其调用 decodeFileId 会产生乱码，直接返回 fileId 让用户知道当前文件标识。
+  if (/^[0-9a-fA-F]{8,32}$/.test(fileId.value)) return fileId.value;
   try {
     const decoded = decodeFileId(fileId.value);
-    return decoded.split('/').pop() || fileId.value;
+    // split 同时支持 Unix 和 Windows 路径分隔符
+    return decoded.split(/[/\\]/).pop() || fileId.value;
   } catch {
     return fileId.value;
   }
