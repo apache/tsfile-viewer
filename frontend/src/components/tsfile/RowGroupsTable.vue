@@ -30,6 +30,7 @@ import { useI18n } from "vue-i18n";
 import { Search } from "lucide-vue-next";
 
 import { tableStyleProps } from "@/utils/tableStyle";
+import { formatTimestamp } from "@/utils/timestamp";
 
 interface Props {
   rowGroups: RowGroup[];
@@ -54,11 +55,6 @@ const filteredRowGroups = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return props.rowGroups.filter((rg) => rg.device?.toLowerCase().includes(query));
 });
-
-// 格式化时间
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
-}
 </script>
 
 <template>
@@ -112,9 +108,9 @@ function formatTime(timestamp: number): string {
           />
           <el-table-column :label="t('tsfile.metadata.timeRange')">
             <template #default="{ row }">
-              <span class="font-mono text-xs">{{ formatTime(row.startTime) }}</span>
+              <span class="font-mono text-xs">{{ formatTimestamp(row.startTime) }}</span>
               <span class="mx-2 text-text-body">~</span>
-              <span class="font-mono text-xs">{{ formatTime(row.endTime) }}</span>
+              <span class="font-mono text-xs">{{ formatTimestamp(row.endTime) }}</span>
             </template>
           </el-table-column>
           <el-table-column

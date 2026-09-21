@@ -27,6 +27,8 @@ import type { TsFileMetadata } from "@/api/tsfile/types";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
+import { formatTimestamp } from "@/utils/timestamp";
+
 interface Props {
   metadata: TsFileMetadata | null;
   loading?: boolean;
@@ -37,10 +39,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
-
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
-}
 
 const isTableModel = computed(() => {
   return props.metadata?.tables && props.metadata.tables.length > 0;
@@ -64,7 +62,7 @@ const items = computed(() => {
     {
       key: "timeRange",
       label: t("tsfile.metadata.timeRange"),
-      content: `${formatTime(props.metadata.timeRange.startTime)} → ${formatTime(props.metadata.timeRange.endTime)}`,
+      content: `${formatTimestamp(props.metadata.timeRange.startTime)} → ${formatTimestamp(props.metadata.timeRange.endTime)}`,
     },
   ];
 

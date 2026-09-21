@@ -28,6 +28,7 @@ import { useI18n } from "vue-i18n";
 
 import { getChartStyle } from "@/theme/charts";
 import { useTheme } from "@/composables/useTheme";
+import { normalizeToMs } from "@/utils/timestamp";
 import { LineChart } from "echarts/charts";
 import {
   DataZoomComponent,
@@ -86,7 +87,10 @@ const chartOption = computed(() => {
   const seriesData = props.series.map((s) => ({
     name: s.name,
     type: "line" as const,
-    data: s.data,
+    // ECharts 的时间轴按毫秒解析数值，TsFile 的原始时间戳可能是纳秒/微秒，
+    // 直接交给时间轴会得到 Invalid Date（轴标签与 tooltip 都会显示不出来），
+    // 因此在渲染前统一归一到毫秒。
+    data: s.data.map(([timestamp, value]) => [normalizeToMs(timestamp), value]),
     smooth: true,
     showSymbol: false,
     emphasis: { focus: "series" as const },
