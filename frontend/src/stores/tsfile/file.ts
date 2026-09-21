@@ -63,20 +63,28 @@ export const useFileStore = defineStore("tsfile-file", () => {
     }
   }
 
-  /** 从 localStorage 恢复上次打开的 currentFile，供页面刷新后使用 */
-  function restoreCurrentFile() {
+  /**
+   * 从 localStorage 恢复上次打开的 currentFile，供页面刷新后使用。
+   *
+   * 只在存储的 fileId 与当前路由的 fileId 一致时恢复：直接用 URL 打开另一个文件
+   * （粘贴链接 / 新开标签页 / 另一个标签页刷新）时，localStorage 里仍是上一个文件，
+   * 照搬会把上一个文件的名字显示在当前文件上。
+   *
+   * @param fileId 当前路由中的文件标识
+   */
+  function restoreCurrentFile(fileId: string) {
     try {
       const stored = localStorage.getItem(CURRENT_FILE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          parsed &&
-          typeof parsed.fileId === "string" &&
-          typeof parsed.fileName === "string"
-        ) {
-          currentFileId.value = parsed.fileId;
-          currentFileName.value = parsed.fileName;
-        }
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      if (
+        parsed &&
+        typeof parsed.fileId === "string" &&
+        typeof parsed.fileName === "string" &&
+        parsed.fileId === fileId
+      ) {
+        currentFileId.value = parsed.fileId;
+        currentFileName.value = parsed.fileName;
       }
     } catch {
       // 忽略

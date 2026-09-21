@@ -36,10 +36,11 @@ const router = useRouter();
 const fileStore = useFileStore();
 const { t } = useI18n();
 
-// 页面刷新时从 localStorage 恢复 currentFile，必须在 watcher (immediate) 之前执行
-fileStore.restoreCurrentFile();
-
+// 先取到当前路由的 fileId：恢复出来的名字只有在 fileId 一致时才允许使用
 const fileId = computed(() => route.params.fileId as string);
+
+// 页面刷新时从 localStorage 恢复 currentFile，必须在 watcher (immediate) 之前执行
+fileStore.restoreCurrentFile(fileId.value);
 const displayFileName = computed(() => {
   if (fileStore.currentFileName) return fileStore.currentFileName;
   // Uploaded-file fileId 是 UUID（最多 32 位 hex），不是 base64 编码的路径，
