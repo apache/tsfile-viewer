@@ -27,7 +27,24 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    # Let a release settle before adopting it, see
+    # https://infra.apache.org/dependabot.html.
+    cooldown:
+      default-days: 4
     commit-message:
       prefix: "ci"
     labels:
       - dependencies
+    groups:
+      # One pull request for the routine bumps instead of one per action, so a
+      # batch does not turn into one CI run per action.
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      # Same for security fixes: one pull request for all outstanding
+      # advisories, as recommended by the policy page.
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
