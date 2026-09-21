@@ -257,6 +257,68 @@ public class TsFileTestUtils {
   }
 
   /**
+   * Creates a table model TsFile whose only field is a BOOLEAN flag.
+   *
+   * <p>Mirrors device data such as fault flags: the timestamp precision is nanoseconds, the table
+   * carries one TAG column plus one BOOLEAN FIELD column. Used to verify that boolean-only tables
+   * still produce chart series.
+   *
+   * @param outputPath the output file path
+   * @param tableName the table name
+   * @param deviceId the device ID (stored in the TAG column)
+   * @param startTime start timestamp in nanoseconds
+   * @param interval interval between data points in nanoseconds
+   * @param pointCount number of data points, the last half is flagged true
+   * @return the created file
+   * @throws IOException if file operations fail
+   * @throws WriteProcessException if write fails
+   */
+  public static File createTableModelBooleanField(
+      Path outputPath,
+      String tableName,
+      String deviceId,
+      long startTime,
+      long interval,
+      int pointCount)
+      throws IOException, WriteProcessException {
+    Files.deleteIfExists(outputPath);
+    File file = outputPath.toFile();
+
+    TableSchema tableSchema =
+        new TableSchema(
+            tableName,
+            Arrays.asList(
+                new ColumnSchemaBuilder()
+                    .name("device_id")
+                    .dataType(TSDataType.STRING)
+                    .category(ColumnCategory.TAG)
+                    .build(),
+                new ColumnSchemaBuilder()
+                    .name("value")
+                    .dataType(TSDataType.BOOLEAN)
+                    .category(ColumnCategory.FIELD)
+                    .build()));
+
+    try (ITsFileWriter writer =
+        new TsFileWriterBuilder().file(file).tableSchema(tableSchema).build()) {
+      Tablet tablet =
+          new Tablet(
+              Arrays.asList("device_id", "value"),
+              Arrays.asList(TSDataType.STRING, TSDataType.BOOLEAN));
+
+      for (int i = 0; i < pointCount; i++) {
+        tablet.addTimestamp(i, startTime + i * interval);
+        tablet.addValue(i, "device_id", deviceId);
+        tablet.addValue(i, "value", i >= pointCount / 2);
+      }
+
+      writer.write(tablet);
+    }
+
+    return file;
+  }
+
+  /**
    * Creates a table model TsFile with data designed for aggregation and visualization testing.
    *
    * @param outputPath the output file path

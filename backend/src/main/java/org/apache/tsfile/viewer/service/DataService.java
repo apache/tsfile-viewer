@@ -428,12 +428,32 @@ public class DataService {
   private List<double[]> extractMeasurementData(List<DataRow> data, String measurement) {
     List<double[]> points = new ArrayList<>();
     for (DataRow row : data) {
-      Object value = row.getMeasurements().get(measurement);
-      if (value instanceof Number number) {
-        points.add(new double[] {row.getTimestamp(), number.doubleValue()});
+      Double value = toChartValue(row.getMeasurements().get(measurement));
+      if (value != null) {
+        points.add(new double[] {row.getTimestamp(), value});
       }
     }
     return points;
+  }
+
+  /**
+   * Converts a measurement value into a number that can be plotted.
+   *
+   * <p>BOOLEAN fields are mapped to 0/1. Without this, a table whose only field is a boolean
+   * (e.g. a fault flag) yields no series at all, so the chart stays empty while the data preview
+   * shows the rows.
+   *
+   * @param value the measurement value
+   * @return the numeric value, or null when the value cannot be plotted
+   */
+  private Double toChartValue(Object value) {
+    if (value instanceof Number number) {
+      return number.doubleValue();
+    }
+    if (value instanceof Boolean bool) {
+      return bool ? 1.0d : 0.0d;
+    }
+    return null;
   }
 
   /**
