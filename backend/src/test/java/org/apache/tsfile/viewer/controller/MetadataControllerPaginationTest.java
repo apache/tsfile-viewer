@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.DeviceRefDTO;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
@@ -267,5 +268,41 @@ class MetadataControllerPaginationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.device").value("root.unknown"))
         .andExpect(jsonPath("$.measurements.length()").value(0));
+  }
+
+  @Test
+  @DisplayName("devices default to offset=0 and limit=50")
+  void shouldApplyDeviceDefaults() throws Exception {
+    when(metadataService.getDevicesPage("file-1", "t1", null, 0, 50))
+        .thenReturn(
+            PageDTO.of(
+                List.of(new DeviceRefDTO("t1.d1", "t1", List.of("d1"))), 3, 0, 50));
+
+    mockMvc
+        .perform(get("/api/meta/file-1/devices").param("tableName", "t1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.offset").value(0))
+        .andExpect(jsonPath("$.limit").value(50))
+        .andExpect(jsonPath("$.total").value(3))
+        .andExpect(jsonPath("$.hasMore").value(true))
+        .andExpect(jsonPath("$.items[0].device").value("t1.d1"))
+        .andExpect(jsonPath("$.items[0].tableName").value("t1"));
+  }
+
+  @Test
+  @DisplayName("devices clamp limit to 200 and normalise a negative offset")
+  void shouldClampDeviceParameters() throws Exception {
+    when(metadataService.getDevicesPage("file-1", null, "abc", 0, 200))
+        .thenReturn(PageDTO.of(List.of(), 0, 0, 200));
+
+    mockMvc
+        .perform(
+            get("/api/meta/file-1/devices")
+                .param("query", "abc")
+                .param("offset", "-5")
+                .param("limit", "500"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.offset").value(0))
+        .andExpect(jsonPath("$.limit").value(200));
   }
 }

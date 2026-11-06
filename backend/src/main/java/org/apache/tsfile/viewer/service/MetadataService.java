@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ import org.apache.tsfile.file.metadata.IDeviceID;
 import org.apache.tsfile.read.TsFileSequenceReader;
 import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.DeviceRefDTO;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
@@ -180,6 +183,79 @@ public class MetadataService {
     }
 
     return PageDTO.of(items, total, offset, limit);
+  }
+
+  /**
+   * Gets one page of devices, optionally scoped to a table and filtered by a substring.
+   *
+   * <p>Derived from the cached device index rather than a row scan: a device identifier already
+   * carries its table name and TAG values ({@code tableName.tag1.tag2}), so listing devices of a
+   * table costs a pass over cached names instead of a full table query.
+   *
+   * @param fileId the file identifier
+   * @param tableName only devices of this table, or null for all devices
+   * @param query case-insensitive substring the device name must contain, or null
+   * @param offset zero-based offset of the first device
+   * @param limit maximum number of devices to return
+   * @return page of devices with the number of matching devices as total
+   * @throws TsFileNotFoundException if the file is not found
+   * @throws AccessDeniedException if the path is not allowed
+   * @throws IOException if the file cannot be read
+   */
+  public PageDTO<DeviceRefDTO> getDevicesPage(
+      String fileId, String tableName, String query, int offset, int limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    logger.debug(
+        "Getting device page for fileId={}, tableName={}, query={}, offset={}, limit={}",
+        fileId,
+        tableName,
+        query,
+        offset,
+        limit);
+
+    String filePath = resolveFilePath(fileId);
+    DeviceIndex deviceIndex = getDeviceIndex(fileId, filePath);
+
+    String tablePrefix = tableName == null ? "" : tableName.trim();
+    String loweredQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+    boolean hasTable = !tablePrefix.isEmpty();
+    boolean hasQuery = !loweredQuery.isEmpty();
+
+    List<DeviceRefDTO> page = new ArrayList<>();
+    int matched = 0;
+    int total = 0;
+    // Two passes so only the requested page is materialised
+    for (IDeviceID device : deviceIndex.devices()) {
+      String name = device.toString();
+      if (hasTable && !isInTable(name, tablePrefix)) {
+        continue;
+      }
+      if (hasQuery && !name.toLowerCase(Locale.ROOT).contains(loweredQuery)) {
+        continue;
+      }
+      if (matched >= offset && page.size() < limit) {
+        page.add(toDeviceRef(name, hasTable ? tablePrefix : null));
+      }
+      matched++;
+      total = matched;
+    }
+
+    return PageDTO.of(page, total, offset, limit);
+  }
+
+  private static boolean isInTable(String deviceName, String tableName) {
+    return deviceName.equals(tableName) || deviceName.startsWith(tableName + ".");
+  }
+
+  private static DeviceRefDTO toDeviceRef(String deviceName, String tableName) {
+    if (tableName == null) {
+      return new DeviceRefDTO(deviceName, null, List.of());
+    }
+    String remainder = deviceName.length() > tableName.length() + 1
+        ? deviceName.substring(tableName.length() + 1)
+        : "";
+    List<String> tagValues = remainder.isEmpty() ? List.of() : List.of(remainder.split("\\."));
+    return new DeviceRefDTO(deviceName, tableName, tagValues);
   }
 
   /**

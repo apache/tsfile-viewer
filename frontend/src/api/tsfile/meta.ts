@@ -19,6 +19,7 @@
 
 import type {
   Chunk,
+  DeviceRef,
   DeviceMeasurements,
   PagedResponse,
   RowGroup,
@@ -59,4 +60,17 @@ export function getDeviceMeasurements(fileId: string, device: string) {
   return apiClient.get<unknown, DeviceMeasurements>(
     `/meta/${fileId}/devices/${encodeURIComponent(device)}/measurements`,
   );
+}
+
+/**
+ * 设备分页（按表过滤 + 子串搜索）。
+ *
+ * 表模型的层级是「表 → 设备 → 字段」，设备下拉必须按所选表取。该端点由已缓存的设备索引
+ * 推导（设备名本身即 tableName.tag1.tag2），因此支持分页与搜索而不做全表行扫描。
+ */
+export function getDevicesPage(
+  fileId: string,
+  params: { tableName?: string; query?: string; offset?: number; limit?: number } = {},
+) {
+  return apiClient.get<unknown, PagedResponse<DeviceRef>>(`/meta/${fileId}/devices`, { params });
 }

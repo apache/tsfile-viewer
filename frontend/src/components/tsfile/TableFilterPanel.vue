@@ -24,7 +24,7 @@
  *
  * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
-import type { AdvancedCondition, RowGroup, Table, TsFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, Table, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 
@@ -34,7 +34,6 @@ import { Filter, RotateCcw, Search } from "lucide-vue-next";
 import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
-import { readPagedRange } from "@/composables/usePagedList";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
 
 interface Props {
@@ -85,38 +84,65 @@ const tableOptions = computed(() => {
 
 // 设备选项
 //
-// 元数据摘要里的 rowGroups 恒为空数组（明细改成分页接口），所以设备名只能来自
-// 分页 RowGroup 数据本身。这里不做全量拉取：最多扫 DEVICE_SCAN_MAX_PAGES 页，
-// deviceScan 记录实际扫了多少行，选项不完整时由模板如实标出。
-// PAGE_SIZE 取后端 PageDTO.MAX_LIMIT（200），再大也会被服务端收窄。
-const DEVICE_SCAN_PAGE_SIZE = 200;
-const DEVICE_SCAN_MAX_PAGES = 4;
+// 表模型的层级是「表 → 设备（TAG 组合）→ 字段」，所以设备清单按所选表取，
+// 并且只拉一页 + 输入时远程搜索：大文件的表可能有数万台设备（实测某表 87,488 台，
+// 一次性返回 16MB / 17s，不可用；分页后热态约十几毫秒）。
+const DEVICE_PAGE_SIZE = 50;
 
 const deviceOptions = ref<{ label: string; value: string }[]>([]);
 const deviceLoading = ref(false);
-const deviceScan = ref({ loaded: 0, total: 0 });
+// 已选设备的标签缓存：远程搜索换了结果集后，已选项仍要能显示名字
+const deviceLabels = new Map<string, string>();
+let deviceSearchTimer: ReturnType<typeof setTimeout> | undefined;
 
-async function loadDeviceOptions() {
+async function loadDeviceOptions(tableName?: string, query?: string) {
+  if (!tableName || !props.fileId) {
+    deviceOptions.value = [];
+    return;
+  }
   deviceLoading.value = true;
   try {
-    const { items, total } = await readPagedRange<RowGroup>(
-      (offset, limit) => metaApi.getRowGroupsPage(props.fileId, offset, limit),
-      { pageSize: DEVICE_SCAN_PAGE_SIZE, maxPages: DEVICE_SCAN_MAX_PAGES },
-    );
-    const devices = new Set<string>();
-    for (const rowGroup of items) {
-      if (rowGroup.device) devices.add(rowGroup.device);
+    const page = await metaApi.getDevicesPage(props.fileId, {
+      tableName,
+      query: query || undefined,
+      offset: 0,
+      limit: DEVICE_PAGE_SIZE,
+    });
+    const options: { label: string; value: string }[] = [];
+    for (const item of page.items ?? []) {
+      if (!item.device) continue;
+      deviceLabels.set(item.device, item.device);
+      options.push({ label: item.device, value: item.device });
     }
-    deviceOptions.value = [...devices].map((d) => ({ label: d, value: d }));
-    deviceScan.value = { loaded: items.length, total };
+    // 保留已选项，避免远程搜索后已选标签消失
+    for (const selected of selectedDevices.value) {
+      if (!options.some((o) => o.value === selected)) {
+        options.push({ label: deviceLabels.get(selected) ?? selected, value: selected });
+      }
+    }
+    deviceOptions.value = options;
   } catch {
-    // 设备选项拉取失败不应拖垮面板本身：表 / 字段 / 时间范围筛选仍然可用
+    // 设备清单拉取失败不应拖垮面板：表 / 字段 / 时间范围筛选仍然可用
     deviceOptions.value = [];
-    deviceScan.value = { loaded: 0, total: 0 };
   } finally {
     deviceLoading.value = false;
   }
 }
+
+/** 下拉输入时远程搜索（去抖，避免每敲一个字符打一次请求） */
+function searchDevices(query: string) {
+  if (deviceSearchTimer) clearTimeout(deviceSearchTimer);
+  deviceSearchTimer = setTimeout(() => {
+    void loadDeviceOptions(selectedTable.value ?? undefined, query.trim());
+  }, 250);
+}
+
+// 切换表：设备属于表，旧设备选择必须失效并按新表重新取
+watch(selectedTable, (tableName) => {
+  selectedDevices.value = [];
+  deviceLabels.clear();
+  void loadDeviceOptions(tableName ?? undefined);
+});
 
 // 字段选项（根据选中的表过滤）
 const measurementOptions = computed(() => {
@@ -164,9 +190,6 @@ async function loadMetadata() {
   try {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;
-
-    // 设备选项来自分页 RowGroup，独立加载，不阻塞表/字段的默认选择
-    void loadDeviceOptions();
 
     // 自动选择第一个表
     if (tableOptions.value.length > 0) {
@@ -357,19 +380,13 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             :disabled="loading || !selectedTable"
             :loading="loading || deviceLoading"
             filterable
+            remote
+            :remote-method="searchDevices"
             collapse-tags
             :max-collapse-tags="1"
             style="min-width: 220px; max-width: 360px"
             popper-class="v2-options-compact"
           />
-          <!-- 设备名只能从分页 RowGroup 里扫到，扫描不完整时标出实际范围 -->
-          <span
-            v-if="deviceScan.total > deviceScan.loaded"
-            class="whitespace-nowrap text-xs text-text-body tnum"
-            :title="t('tsfile.metadata.searchByDevice')"
-          >
-            ({{ deviceScan.loaded }} / {{ deviceScan.total }})
-          </span>
         </div>
 
         <!-- 字段多选 -->

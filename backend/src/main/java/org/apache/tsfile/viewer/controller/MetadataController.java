@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.apache.tsfile.viewer.dto.ChunkDTO;
 import org.apache.tsfile.viewer.dto.DeviceMeasurementsDTO;
+import org.apache.tsfile.viewer.dto.DeviceRefDTO;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
@@ -83,6 +84,35 @@ public class MetadataController {
 
     TsFileMetadataDTO metadata = metadataService.getMetadata(fileId);
     return ResponseEntity.ok(metadata);
+  }
+
+  /**
+   * Gets one page of devices, optionally scoped to a table and filtered by a substring.
+   *
+   * <p>Cheap enough for pickers: it is derived from the cached device index, not from a table
+   * query.
+   *
+   * @param fileId the file identifier
+   * @param tableName only devices of this table
+   * @param query case-insensitive substring the device name must contain
+   * @param offset zero-based offset, negative values are treated as 0
+   * @param limit page size, defaults to 50 and is capped at 200
+   * @return page of devices
+   */
+  @GetMapping("/{fileId}/devices")
+  public ResponseEntity<PageDTO<DeviceRefDTO>> getDevices(
+      @PathVariable String fileId,
+      @RequestParam(required = false) String tableName,
+      @RequestParam(required = false) String query,
+      @RequestParam(required = false) Integer offset,
+      @RequestParam(required = false) Integer limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    int effectiveOffset = PageDTO.normalizeOffset(offset);
+    int effectiveLimit = PageDTO.normalizeLimit(limit);
+
+    PageDTO<DeviceRefDTO> page =
+        metadataService.getDevicesPage(fileId, tableName, query, effectiveOffset, effectiveLimit);
+    return ResponseEntity.ok(page);
   }
 
   /**

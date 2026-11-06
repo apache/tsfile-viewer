@@ -114,6 +114,13 @@ export interface PagedResponse<T> {
   hasMore: boolean;
 }
 
+/** 设备引用：设备名、所属表、TAG 值（都由设备标识本身推导，不需要行扫描） */
+export interface DeviceRef {
+  device: string;
+  tableName: string | null;
+  tagValues: string[];
+}
+
 /**
  * 单个设备携带的测点。
  *
