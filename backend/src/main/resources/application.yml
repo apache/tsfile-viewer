@@ -63,6 +63,9 @@ tsfile:
     task-timeout-minutes: 30
     cache-max-size: 100
     cache-ttl-minutes: 60
+    # 单个文件允许建立紧凑 chunk 索引的最大 chunk 数。超过该阈值时不报错、不 OOM，
+    # 而是降级为只做结构与元数据检查、跳过数据区全量遍历，并在扫描结果中明确标注。
+    max-chunks: 5000000
 
 # SpringDoc OpenAPI Configuration
 springdoc:

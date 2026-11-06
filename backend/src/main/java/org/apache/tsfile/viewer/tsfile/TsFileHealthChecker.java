@@ -72,6 +72,30 @@ public class TsFileHealthChecker {
 
   private static final Logger logger = LoggerFactory.getLogger(TsFileHealthChecker.class);
 
+  /** Default cap on the number of chunks a single file may contribute to the chunk index. */
+  public static final int DEFAULT_MAX_CHUNKS = 5_000_000;
+
+  /** Number of devices processed between two device-metadata cache evictions. */
+  private static final int DEVICE_CACHE_CLEAR_INTERVAL = 1000;
+
+  private final int maxChunks;
+
+  /** Creates a checker using {@link #DEFAULT_MAX_CHUNKS}. */
+  public TsFileHealthChecker() {
+    this(DEFAULT_MAX_CHUNKS);
+  }
+
+  /**
+   * Creates a checker with an explicit chunk cap.
+   *
+   * @param maxChunks maximum number of chunks indexed for a single file; a file above the cap has
+   *     its data-area traversal skipped instead of blowing up the heap. Non-positive values fall
+   *     back to {@link #DEFAULT_MAX_CHUNKS}.
+   */
+  public TsFileHealthChecker(int maxChunks) {
+    this.maxChunks = maxChunks > 0 ? maxChunks : DEFAULT_MAX_CHUNKS;
+  }
+
   /**
    * Performs a full health check on a single TsFile following IoTDB's validation approach.
    *
@@ -79,7 +103,8 @@ public class TsFileHealthChecker {
    *
    * <ol>
    *   <li>Validate file completeness (isComplete)
-   *   <li>Build chunk metadata offset map for cross-referencing
+   *   <li>Build a compact chunk metadata index for cross-referencing (skipped, together with the
+   *       data-area traversal below, when the file exceeds {@code tsfile.scan.max-chunks})
    *   <li>Sequential marker-based traversal validating:
    *       <ul>
    *         <li>Chunk header offset matches metadata
@@ -121,18 +146,41 @@ public class TsFileHealthChecker {
                 "File is not complete (missing tail magic string or truncated)",
                 ErrorSeverity.CRITICAL));
       } else {
-        // Step 2: Build chunk metadata map
-        Map<Long, IChunkMetadata> chunkMetadataMap = getChunkMetadataMap(reader);
-        if (chunkMetadataMap.isEmpty()) {
+        // Step 2: Build the compact chunk metadata index
+        ChunkMetadataIndex chunkMetadataIndex = null;
+        boolean chunkLimitExceeded = false;
+        try {
+          chunkMetadataIndex = buildChunkMetadataIndex(reader);
+        } catch (ChunkMetadataIndex.ChunkCountExceededException e) {
+          // Degrade instead of failing or exhausting the heap: structure and metadata were still
+          // checked, only the full data-area traversal is skipped.
+          chunkLimitExceeded = true;
+          logger.warn(
+              "Chunk count of {} exceeds tsfile.scan.max-chunks={}, skipping data validation",
+              filePath,
+              maxChunks);
           errors.add(
               new FileError(
-                  ScanErrorType.STRUCTURE_CORRUPT,
-                  "File content",
-                  "No data found in the file (empty chunk metadata)",
-                  ErrorSeverity.ERROR));
-        } else {
-          // Step 3: Marker-based traversal with data validation
-          validateDataCorrectness(reader, chunkMetadataMap, errors);
+                  ScanErrorType.DATA_VALIDATION_SKIPPED,
+                  "Data area validation",
+                  "Data area validation skipped: chunk count exceeds tsfile.scan.max-chunks ("
+                      + e.getLimit()
+                      + "). Structure and metadata checks still ran.",
+                  ErrorSeverity.WARNING));
+        }
+
+        if (!chunkLimitExceeded) {
+          if (chunkMetadataIndex.isEmpty()) {
+            errors.add(
+                new FileError(
+                    ScanErrorType.STRUCTURE_CORRUPT,
+                    "File content",
+                    "No data found in the file (empty chunk metadata)",
+                    ErrorSeverity.ERROR));
+          } else {
+            // Step 3: Marker-based traversal with data validation
+            validateDataCorrectness(reader, chunkMetadataIndex, errors);
+          }
         }
       }
     } catch (IOException e) {
@@ -180,8 +228,9 @@ public class TsFileHealthChecker {
                 "File is not complete (missing tail magic string or truncated)",
                 ErrorSeverity.CRITICAL));
       } else {
-        Map<Long, IChunkMetadata> chunkMetadataMap = getChunkMetadataMap(reader);
-        if (chunkMetadataMap.isEmpty()) {
+        // Only the "does the file hold any chunk at all" question matters here, so stop at the
+        // first chunk instead of indexing every chunk in the file.
+        if (!hasAnyChunk(reader)) {
           errors.add(
               new FileError(
                   ScanErrorType.STRUCTURE_CORRUPT,
@@ -219,12 +268,11 @@ public class TsFileHealthChecker {
    * validateTsFileDataCorrectness} approach.
    */
   private void validateDataCorrectness(
-      TsFileSequenceReader reader,
-      Map<Long, IChunkMetadata> chunkMetadataMap,
-      List<FileError> errors) {
+      TsFileSequenceReader reader, ChunkMetadataIndex chunkMetadataIndex, List<FileError> errors) {
 
     List<List<long[]>> alignedTimeBatches = new ArrayList<>();
     Map<String, Integer> valueColumn2TimeBatchIndex = new HashMap<>();
+    ChunkMetadataIndex.Cursor chunkCursor = chunkMetadataIndex.cursor();
 
     try {
       reader.position((long) TSFileConfig.MAGIC_STRING.getBytes().length + 1);
@@ -241,17 +289,17 @@ public class TsFileHealthChecker {
           case MetaMarker.ONLY_ONE_PAGE_VALUE_CHUNK_HEADER:
             long chunkOffset = reader.position();
             ChunkHeader header = reader.readChunkHeader(marker);
-            IChunkMetadata chunkMetadata = chunkMetadataMap.get(chunkOffset - Byte.BYTES);
+            int chunkIndex = chunkCursor.find(chunkOffset - Byte.BYTES);
+            String metadataMeasurement = chunkIndex >= 0 ? chunkCursor.measurement(chunkIndex) : null;
 
             // Validate chunk offset matches metadata
-            if (chunkMetadata != null
-                && !chunkMetadata.getMeasurementUid().equals(header.getMeasurementID())) {
+            if (chunkIndex >= 0 && !metadataMeasurement.equals(header.getMeasurementID())) {
               errors.add(
                   new FileError(
                       ScanErrorType.STRUCTURE_CORRUPT,
                       "Chunk at offset " + (chunkOffset - Byte.BYTES),
                       "Chunk measurement ID mismatch: metadata says '"
-                          + chunkMetadata.getMeasurementUid()
+                          + metadataMeasurement
                           + "' but chunk header says '"
                           + header.getMeasurementID()
                           + "'",
@@ -302,11 +350,11 @@ public class TsFileHealthChecker {
                 long pageHeaderStartTime =
                     isHasStatistic
                         ? pageHeader.getStartTime()
-                        : (chunkMetadata != null ? chunkMetadata.getStartTime() : 0);
+                        : (chunkIndex >= 0 ? chunkCursor.startTime(chunkIndex) : 0);
                 long pageHeaderEndTime =
                     isHasStatistic
                         ? pageHeader.getEndTime()
-                        : (chunkMetadata != null ? chunkMetadata.getEndTime() : 0);
+                        : (chunkIndex >= 0 ? chunkCursor.endTime(chunkIndex) : 0);
 
                 validateTimeFrame(
                     alignedTimeBatch,
@@ -347,11 +395,11 @@ public class TsFileHealthChecker {
                   long pageHeaderStartTime =
                       isHasStatistic
                           ? pageHeader.getStartTime()
-                          : (chunkMetadata != null ? chunkMetadata.getStartTime() : 0);
+                          : (chunkIndex >= 0 ? chunkCursor.startTime(chunkIndex) : 0);
                   long pageHeaderEndTime =
                       isHasStatistic
                           ? pageHeader.getEndTime()
-                          : (chunkMetadata != null ? chunkMetadata.getEndTime() : 0);
+                          : (chunkIndex >= 0 ? chunkCursor.endTime(chunkIndex) : 0);
                   long pageStartTime = Long.MAX_VALUE;
                   long previousTime = Long.MIN_VALUE;
 
@@ -532,21 +580,62 @@ public class TsFileHealthChecker {
   // ---------------------------------------------------------------------------
 
   /**
-   * Builds a map of chunk header offset to IChunkMetadata for cross-referencing during traversal.
+   * Builds the compact chunk metadata index used for cross-referencing during traversal.
+   *
+   * <p>Devices are read one at a time and dropped immediately, so the transient peak stays bounded
+   * by a single device instead of the whole file's {@link TimeseriesMetadata} tree. The reader's
+   * device-metadata cache is evicted periodically; nothing in this method holds a reference into
+   * that cache, so eviction is safe at any point.
+   *
+   * @throws ChunkMetadataIndex.ChunkCountExceededException if the file holds more than {@code
+   *     maxChunks} chunks
    */
-  private Map<Long, IChunkMetadata> getChunkMetadataMap(TsFileSequenceReader reader)
-      throws IOException {
-    Map<Long, IChunkMetadata> offset2ChunkMetadata = new HashMap<>();
-    Map<IDeviceID, List<TimeseriesMetadata>> device2Metadata =
-        reader.getAllTimeseriesMetadata(true);
-    for (Map.Entry<IDeviceID, List<TimeseriesMetadata>> entry : device2Metadata.entrySet()) {
-      for (TimeseriesMetadata timeseriesMetadata : entry.getValue()) {
-        for (IChunkMetadata chunkMetadata : timeseriesMetadata.getChunkMetadataList()) {
-          offset2ChunkMetadata.put(chunkMetadata.getOffsetOfChunkHeader(), chunkMetadata);
+  ChunkMetadataIndex buildChunkMetadataIndex(TsFileSequenceReader reader) throws IOException {
+    ChunkMetadataIndex index = new ChunkMetadataIndex(maxChunks);
+    int devicesSinceCacheClear = 0;
+    for (IDeviceID device : reader.getAllDevices()) {
+      for (TimeseriesMetadata timeseriesMetadata : reader.getDeviceTimeseriesMetadata(device)) {
+        List<IChunkMetadata> chunkMetadataList = timeseriesMetadata.getChunkMetadataList();
+        if (chunkMetadataList == null || chunkMetadataList.isEmpty()) {
+          continue;
+        }
+        for (IChunkMetadata chunkMetadata : chunkMetadataList) {
+          index.add(
+              chunkMetadata.getOffsetOfChunkHeader(),
+              chunkMetadata.getMeasurementUid(),
+              chunkMetadata.getStartTime(),
+              chunkMetadata.getEndTime());
         }
       }
+      if (++devicesSinceCacheClear >= DEVICE_CACHE_CLEAR_INTERVAL) {
+        devicesSinceCacheClear = 0;
+        reader.clearCachedDeviceMetadata();
+      }
     }
-    return offset2ChunkMetadata;
+    index.seal();
+    return index;
+  }
+
+  /**
+   * Returns whether the file holds at least one chunk, stopping at the first one found.
+   *
+   * <p>Used by {@link #quickCheck(Path)}, which needs the "non-empty" verdict only.
+   */
+  private boolean hasAnyChunk(TsFileSequenceReader reader) throws IOException {
+    int devicesSinceCacheClear = 0;
+    for (IDeviceID device : reader.getAllDevices()) {
+      for (TimeseriesMetadata timeseriesMetadata : reader.getDeviceTimeseriesMetadata(device)) {
+        List<IChunkMetadata> chunkMetadataList = timeseriesMetadata.getChunkMetadataList();
+        if (chunkMetadataList != null && !chunkMetadataList.isEmpty()) {
+          return true;
+        }
+      }
+      if (++devicesSinceCacheClear >= DEVICE_CACHE_CLEAR_INTERVAL) {
+        devicesSinceCacheClear = 0;
+        reader.clearCachedDeviceMetadata();
+      }
+    }
+    return false;
   }
 
   /**

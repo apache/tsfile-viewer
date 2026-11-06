@@ -38,5 +38,12 @@ public enum ScanErrorType {
   TIMESERIES_METADATA_MISMATCH,
 
   /** An IOException occurred while reading the file. */
-  DATA_READ_ERROR
+  DATA_READ_ERROR,
+
+  /**
+   * The file holds more chunks than {@code tsfile.scan.max-chunks} allows, so the data-area
+   * traversal was skipped. Structure and metadata checks still ran — this is a degraded, not a
+   * failed, result.
+   */
+  DATA_VALIDATION_SKIPPED
 }

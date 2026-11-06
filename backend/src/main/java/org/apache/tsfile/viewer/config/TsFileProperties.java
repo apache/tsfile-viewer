@@ -235,6 +235,14 @@ public class TsFileProperties {
     /** Time-to-live in minutes for cached scan results. */
     private int cacheTtlMinutes = 60;
 
+    /**
+     * 单个文件允许建立紧凑 chunk 索引的最大 chunk 数。
+     *
+     * <p>超过该阈值时不报错、不 OOM，而是降级为只做结构与元数据检查，跳过数据区全量遍历，并在 {@code ScanResult} 的错误列表中以 {@link
+     * org.apache.tsfile.viewer.dto.ScanErrorType#DATA_VALIDATION_SKIPPED} 标注。默认 5,000,000。
+     */
+    private int maxChunks = 5_000_000;
+
     public int getMaxConcurrent() {
       return maxConcurrent;
     }
@@ -273,6 +281,14 @@ public class TsFileProperties {
 
     public void setCacheTtlMinutes(int cacheTtlMinutes) {
       this.cacheTtlMinutes = cacheTtlMinutes;
+    }
+
+    public int getMaxChunks() {
+      return maxChunks;
+    }
+
+    public void setMaxChunks(int maxChunks) {
+      this.maxChunks = maxChunks;
     }
   }
 }
