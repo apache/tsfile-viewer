@@ -75,6 +75,6 @@ springdoc:
 # Logging Configuration
 logging:
   level:
-    org.apache.tsfile.viewer: DEBUG
+    org.apache.tsfile.viewer: INFO
     org.apache.tsfile: INFO
     org.springframework.web: INFO

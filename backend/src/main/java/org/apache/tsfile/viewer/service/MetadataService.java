@@ -21,7 +21,9 @@ package org.apache.tsfile.viewer.service;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -30,12 +32,17 @@ import org.springframework.stereotype.Service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.tsfile.read.TsFileSequenceReader;
 import org.apache.tsfile.viewer.config.TsFileProperties;
-import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
+import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.PageDTO;
+import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TimeRange;
+import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.EmptyFileException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
+import org.apache.tsfile.viewer.tsfile.DeviceIndex;
 import org.apache.tsfile.viewer.tsfile.TsFileParser;
 
 import jakarta.annotation.PostConstruct;
@@ -46,9 +53,9 @@ import jakarta.annotation.PostConstruct;
  * <p>Provides functionality for:
  *
  * <ul>
- *   <li>Parsing and caching TsFile metadata
- *   <li>Extracting measurements, RowGroups, and Chunks
- *   <li>Caching metadata by fileId with TTL
+ *   <li>Parsing and caching the TsFile metadata summary (counts and schemas only)
+ *   <li>Serving RowGroup and Chunk detail pages from incremental per-device reads
+ *   <li>Caching a compact device index keyed by the file's mtime and size
  * </ul>
  *
  * <p>Validates: Requirement 2.1-2.5, 5.1 (Metadata extraction, caching)
@@ -58,11 +65,21 @@ public class MetadataService {
 
   private static final Logger logger = LoggerFactory.getLogger(MetadataService.class);
 
+  /**
+   * Device indexes are small (a device name list plus one int per device) but each one pins data
+   * for a whole file, so this cache stays deliberately tiny instead of tracking file count.
+   */
+  private static final int DEVICE_INDEX_CACHE_SIZE = 8;
+
   private final TsFileProperties tsFileProperties;
   private final FileService fileService;
   private final TsFileParser tsFileParser;
 
+  /** Cached summaries only: they carry no RowGroup or Chunk lists, so entries stay small. */
   private Cache<String, TsFileMetadataDTO> metadataCache;
+
+  /** Cached device indexes, validated against the file's mtime and size on every use. */
+  private Cache<String, DeviceIndex> deviceIndexCache;
 
   public MetadataService(
       TsFileProperties tsFileProperties, FileService fileService, TsFileParser tsFileParser) {
@@ -78,7 +95,10 @@ public class MetadataService {
     int ttlMinutes = tsFileProperties.getCache().getMetadata().getTtlMinutes();
 
     logger.info(
-        "Initializing MetadataService cache with maxSize={}, ttlMinutes={}", maxSize, ttlMinutes);
+        "Initializing MetadataService cache with maxSize={}, ttlMinutes={}, deviceIndexMaxSize={}",
+        maxSize,
+        ttlMinutes,
+        DEVICE_INDEX_CACHE_SIZE);
 
     this.metadataCache =
         Caffeine.newBuilder()
@@ -86,15 +106,22 @@ public class MetadataService {
             .expireAfterWrite(ttlMinutes, TimeUnit.MINUTES)
             .recordStats()
             .build();
+    this.deviceIndexCache =
+        Caffeine.newBuilder()
+            .maximumSize(DEVICE_INDEX_CACHE_SIZE)
+            .expireAfterWrite(ttlMinutes, TimeUnit.MINUTES)
+            .build();
   }
 
   /**
-   * Gets metadata for a TsFile by fileId.
+   * Gets the metadata summary for a TsFile by fileId.
    *
-   * <p>First checks the cache, then parses the file if not cached.
+   * <p>The returned {@code rowGroups} and {@code chunks} lists are always empty: details are served
+   * by {@link #getRowGroupsPage} and {@link #getChunksPage} instead, so building a summary never
+   * materializes the whole file's chunk metadata.
    *
    * @param fileId the file identifier
-   * @return TsFileMetadataDTO with complete metadata
+   * @return TsFileMetadataDTO with summary metadata
    * @throws TsFileNotFoundException if the file is not found
    * @throws AccessDeniedException if the path is not allowed
    * @throws IOException if the file cannot be read
@@ -103,21 +130,100 @@ public class MetadataService {
       throws TsFileNotFoundException, AccessDeniedException, IOException {
     logger.debug("Getting metadata for fileId={}", fileId);
 
-    // Check cache first
     TsFileMetadataDTO cached = metadataCache.getIfPresent(fileId);
     if (cached != null) {
       logger.debug("Returning cached metadata for fileId={}", fileId);
       return cached;
     }
 
-    // Get file path and parse metadata
+    String filePath = resolveFilePath(fileId);
+    logger.debug("Parsing metadata summary for file: {}", filePath);
+
+    TsFileParser.SummaryMetadata summary = tsFileParser.parseSummary(filePath);
+    TsFileMetadataDTO metadata = toSummaryDTO(fileId, summary);
+
+    metadataCache.put(fileId, metadata);
+    deviceIndexCache.put(fileId, summary.deviceIndex());
+    logger.debug("Cached metadata for fileId={}", fileId);
+
+    return metadata;
+  }
+
+  /**
+   * Gets one page of RowGroups (one RowGroup per device).
+   *
+   * <p>Only the devices inside the page window are read from the file.
+   *
+   * @param fileId the file identifier
+   * @param offset zero-based offset of the first RowGroup
+   * @param limit maximum number of RowGroups to return
+   * @return page of RowGroups with the file's total RowGroup count
+   * @throws TsFileNotFoundException if the file is not found
+   * @throws AccessDeniedException if the path is not allowed
+   * @throws IOException if the file cannot be read
+   */
+  public PageDTO<RowGroupDTO> getRowGroupsPage(String fileId, int offset, int limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    logger.debug("Getting RowGroup page for fileId={}, offset={}, limit={}", fileId, offset, limit);
+
+    String filePath = resolveFilePath(fileId);
+    DeviceIndex deviceIndex = getDeviceIndex(fileId, filePath);
+    int total = deviceIndex.deviceCount();
+
+    List<RowGroupDTO> items = List.of();
+    if (offset < total && limit > 0) {
+      try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
+        items = tsFileParser.readRowGroupPage(reader, deviceIndex, offset, limit);
+      }
+    }
+
+    return PageDTO.of(items, total, offset, limit);
+  }
+
+  /**
+   * Gets one page of Chunks, crossing device boundaries when a page needs to.
+   *
+   * <p>Only the devices the page touches are read from the file.
+   *
+   * @param fileId the file identifier
+   * @param offset zero-based offset of the first chunk
+   * @param limit maximum number of chunks to return
+   * @return page of Chunks with the file's total chunk count
+   * @throws TsFileNotFoundException if the file is not found
+   * @throws AccessDeniedException if the path is not allowed
+   * @throws IOException if the file cannot be read
+   */
+  public PageDTO<ChunkDTO> getChunksPage(String fileId, int offset, int limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    logger.debug("Getting chunk page for fileId={}, offset={}, limit={}", fileId, offset, limit);
+
+    String filePath = resolveFilePath(fileId);
+    DeviceIndex deviceIndex = getDeviceIndex(fileId, filePath);
+    int total = deviceIndex.chunkCount();
+
+    List<ChunkDTO> items = List.of();
+    if (offset < total && limit > 0) {
+      try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
+        items = tsFileParser.readChunkPage(reader, deviceIndex, offset, limit);
+      }
+    }
+
+    return PageDTO.of(items, total, offset, limit);
+  }
+
+  /**
+   * Resolves a fileId to an existing, non-empty file path.
+   *
+   * @param fileId the file identifier
+   * @return absolute file path
+   */
+  private String resolveFilePath(String fileId)
+      throws TsFileNotFoundException, AccessDeniedException {
     String filePath = fileService.getFilePath(fileId);
-    logger.debug("Parsing metadata for file: {}", filePath);
 
     // Pre-check: reject empty files before attempting to parse
     try {
-      long fileSize = Files.size(Paths.get(filePath));
-      if (fileSize == 0) {
+      if (Files.size(Paths.get(filePath)) == 0) {
         throw new EmptyFileException(
             "The file is empty (0 bytes). It may be a placeholder or incomplete write.");
       }
@@ -125,49 +231,75 @@ public class MetadataService {
       logger.warn("Cannot determine file size for {}: {}", filePath, e.getMessage());
     }
 
-    TsFileMetadataDTO metadata = parseMetadata(fileId, filePath);
-
-    // Cache the result
-    metadataCache.put(fileId, metadata);
-    logger.debug("Cached metadata for fileId={}", fileId);
-
-    return metadata;
+    return filePath;
   }
 
   /**
-   * Parses metadata from a TsFile.
+   * Returns the cached device index of a file, rebuilding it when the file changed on disk.
    *
    * @param fileId the file identifier
-   * @param filePath the file path
-   * @return TsFileMetadataDTO with parsed metadata
-   * @throws IOException if the file cannot be read
+   * @param filePath the resolved file path
+   * @return device index of the file's current version
    */
-  private TsFileMetadataDTO parseMetadata(String fileId, String filePath) throws IOException {
-    // Parse all metadata in a single pass (opens the file only once instead of 5-7 times)
-    TsFileParser.AllMetadata all = tsFileParser.parseAll(filePath);
+  private DeviceIndex getDeviceIndex(String fileId, String filePath) throws IOException {
+    DeviceIndex cached = deviceIndexCache.getIfPresent(fileId);
+    if (cached != null && !isStale(cached, filePath)) {
+      return cached;
+    }
+
+    DeviceIndex deviceIndex = tsFileParser.parseDeviceIndex(filePath);
+    deviceIndexCache.put(fileId, deviceIndex);
+    return deviceIndex;
+  }
+
+  /**
+   * Tells whether a cached index no longer matches the file on disk.
+   *
+   * @param deviceIndex cached index
+   * @param filePath file path
+   * @return true when the file's mtime or size differs from the indexed version
+   */
+  private static boolean isStale(DeviceIndex deviceIndex, String filePath) {
+    try {
+      Path path = Paths.get(filePath);
+      return !deviceIndex.matches(Files.getLastModifiedTime(path).toMillis(), Files.size(path));
+    } catch (IOException e) {
+      logger.debug("Cannot stat {}: {}", filePath, e.getMessage());
+      return true;
+    }
+  }
+
+  /**
+   * Converts parsed summary metadata to the API DTO.
+   *
+   * @param fileId the file identifier
+   * @param summary parsed summary metadata
+   * @return DTO with empty RowGroup and Chunk lists
+   */
+  private TsFileMetadataDTO toSummaryDTO(String fileId, TsFileParser.SummaryMetadata summary) {
+    TsFileParser.BasicMetadata basic = summary.basic();
 
     // Check if the file is empty (valid structure but no data)
-    if (all.basic().deviceCount() == 0
-        && all.measurements().isEmpty()
-        && all.rowGroups().isEmpty()
-        && all.chunks().isEmpty()
-        && all.tables().isEmpty()) {
+    if (basic.deviceCount() == 0
+        && summary.measurements().isEmpty()
+        && summary.tables().isEmpty()
+        && summary.deviceIndex().chunkCount() == 0) {
       throw new EmptyFileException(
           "The TsFile is valid but contains no data. It may be a newly created or empty file.");
     }
 
     return TsFileMetadataDTO.builder()
         .fileId(fileId)
-        .version(all.basic().version())
-        .timeRange(new TimeRange(all.basic().startTime(), all.basic().endTime()))
-        .deviceCount(all.basic().deviceCount())
-        .measurementCount(all.basic().measurementCount())
-        .rowGroupCount(all.rowGroups().size())
-        .chunkCount(all.chunks().size())
-        .measurements(all.measurements())
-        .rowGroups(all.rowGroups())
-        .chunks(all.chunks())
-        .tables(all.tables())
+        .version(basic.version())
+        .timeRange(new TimeRange(basic.startTime(), basic.endTime()))
+        .deviceCount(basic.deviceCount())
+        .measurementCount(basic.measurementCount())
+        .rowGroupCount(basic.rowGroupCount())
+        .chunkCount(basic.chunkCount())
+        .measurements(summary.measurements())
+        .rowGroups(List.of())
+        .chunks(List.of())
+        .tables(summary.tables())
         .build();
   }
 
@@ -179,12 +311,14 @@ public class MetadataService {
   public void invalidateCache(String fileId) {
     logger.debug("Invalidating cache for fileId={}", fileId);
     metadataCache.invalidate(fileId);
+    deviceIndexCache.invalidate(fileId);
   }
 
   /** Invalidates all cached metadata. */
   public void invalidateAllCache() {
     logger.info("Invalidating all metadata cache");
     metadataCache.invalidateAll();
+    deviceIndexCache.invalidateAll();
   }
 
   /**

@@ -27,8 +27,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.PageDTO;
+import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
@@ -40,7 +44,9 @@ import org.apache.tsfile.viewer.service.MetadataService;
  * <p>Provides endpoints for:
  *
  * <ul>
- *   <li>GET /api/meta/{fileId} - Get complete TsFile metadata
+ *   <li>GET /api/meta/{fileId} - Get the metadata summary
+ *   <li>GET /api/meta/{fileId}/row-groups - Get a page of RowGroups
+ *   <li>GET /api/meta/{fileId}/chunks - Get a page of Chunks
  * </ul>
  *
  * <p>Validates: Requirement 8.3 (Metadata endpoint)
@@ -58,13 +64,14 @@ public class MetadataController {
   }
 
   /**
-   * Gets complete metadata for a TsFile.
+   * Gets the metadata summary for a TsFile.
    *
-   * <p>Returns metadata including version, time range, device/measurement counts, and detailed
-   * lists of measurements, RowGroups, and Chunks.
+   * <p>Returns version, time range, device/measurement counts and schema details. The {@code
+   * rowGroups} and {@code chunks} fields are kept for contract compatibility but are always empty;
+   * details come from the paging endpoints below.
    *
    * @param fileId the file identifier
-   * @return TsFileMetadataDTO with complete metadata
+   * @return TsFileMetadataDTO with summary metadata
    */
   @GetMapping("/{fileId}")
   public ResponseEntity<TsFileMetadataDTO> getMetadata(@PathVariable String fileId)
@@ -73,5 +80,53 @@ public class MetadataController {
 
     TsFileMetadataDTO metadata = metadataService.getMetadata(fileId);
     return ResponseEntity.ok(metadata);
+  }
+
+  /**
+   * Gets one page of RowGroups of a TsFile.
+   *
+   * @param fileId the file identifier
+   * @param offset zero-based offset, negative values are treated as 0
+   * @param limit page size, defaults to 50 and is capped at 200
+   * @return page of RowGroups
+   */
+  @GetMapping("/{fileId}/row-groups")
+  public ResponseEntity<PageDTO<RowGroupDTO>> getRowGroups(
+      @PathVariable String fileId,
+      @RequestParam(name = "offset", required = false) Integer offset,
+      @RequestParam(name = "limit", required = false) Integer limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    int pageOffset = PageDTO.normalizeOffset(offset);
+    int pageLimit = PageDTO.normalizeLimit(limit);
+
+    logger.debug(
+        "Getting RowGroup page for fileId={}, offset={}, limit={}", fileId, pageOffset, pageLimit);
+
+    PageDTO<RowGroupDTO> page = metadataService.getRowGroupsPage(fileId, pageOffset, pageLimit);
+    return ResponseEntity.ok(page);
+  }
+
+  /**
+   * Gets one page of Chunks of a TsFile.
+   *
+   * @param fileId the file identifier
+   * @param offset zero-based offset, negative values are treated as 0
+   * @param limit page size, defaults to 50 and is capped at 200
+   * @return page of Chunks
+   */
+  @GetMapping("/{fileId}/chunks")
+  public ResponseEntity<PageDTO<ChunkDTO>> getChunks(
+      @PathVariable String fileId,
+      @RequestParam(name = "offset", required = false) Integer offset,
+      @RequestParam(name = "limit", required = false) Integer limit)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    int pageOffset = PageDTO.normalizeOffset(offset);
+    int pageLimit = PageDTO.normalizeLimit(limit);
+
+    logger.debug(
+        "Getting chunk page for fileId={}, offset={}, limit={}", fileId, pageOffset, pageLimit);
+
+    PageDTO<ChunkDTO> page = metadataService.getChunksPage(fileId, pageOffset, pageLimit);
+    return ResponseEntity.ok(page);
   }
 }
