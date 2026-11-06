@@ -22,7 +22,7 @@
  * TreeFilterPanel - 树模型筛选面板
  * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
-import type { AdvancedCondition, TsFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, RowGroup, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
+import { readPagedRange } from "@/composables/usePagedList";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
 
 interface Props {
@@ -66,14 +67,40 @@ const selectedQuickRange = ref<string | null>(null);
 const showAdvancedDialog = ref(false);
 const advancedConditions = ref<AdvancedCondition[]>([]);
 
-const deviceOptions = computed(() => {
-  if (!metadata.value?.rowGroups) return [];
-  const devices = new Set<string>();
-  for (const rg of metadata.value.rowGroups) {
-    if (rg.device) devices.add(rg.device);
+// 设备选项
+//
+// 元数据摘要里的 rowGroups 恒为空数组（明细改成分页接口），所以设备名只能来自
+// 分页 RowGroup 数据本身。这里不做全量拉取：最多扫 DEVICE_SCAN_MAX_PAGES 页，
+// deviceScan 记录实际扫了多少行，选项不完整时由模板如实标出。
+// PAGE_SIZE 取后端 PageDTO.MAX_LIMIT（200），再大也会被服务端收窄。
+const DEVICE_SCAN_PAGE_SIZE = 200;
+const DEVICE_SCAN_MAX_PAGES = 4;
+
+const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const deviceLoading = ref(false);
+const deviceScan = ref({ loaded: 0, total: 0 });
+
+async function loadDeviceOptions() {
+  deviceLoading.value = true;
+  try {
+    const { items, total } = await readPagedRange<RowGroup>(
+      (offset, limit) => metaApi.getRowGroupsPage(props.fileId, offset, limit),
+      { pageSize: DEVICE_SCAN_PAGE_SIZE, maxPages: DEVICE_SCAN_MAX_PAGES },
+    );
+    const devices = new Set<string>();
+    for (const rowGroup of items) {
+      if (rowGroup.device) devices.add(rowGroup.device);
+    }
+    deviceOptions.value = [...devices].sort().map((d) => ({ label: d, value: d }));
+    deviceScan.value = { loaded: items.length, total };
+  } catch {
+    // 设备选项拉取失败不应拖垮面板本身：测点 / 时间范围筛选仍然可用
+    deviceOptions.value = [];
+    deviceScan.value = { loaded: 0, total: 0 };
+  } finally {
+    deviceLoading.value = false;
   }
-  return [...devices].sort().map((d) => ({ label: d, value: d }));
-});
+}
 
 const measurementOptions = computed(() => {
   if (!metadata.value?.measurements) return [];
@@ -127,6 +154,8 @@ async function loadMetadata() {
   try {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;
+    // chart 模式的首次查询要带默认设备，因此这里必须等设备选项就位
+    await loadDeviceOptions();
     if (deviceOptions.value.length > 0) {
       selectedDevice.value = deviceOptions.value[0]!.value;
     }
@@ -224,10 +253,18 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             :options="deviceOptions"
             filterable
             :placeholder="t('tsfile.metadata.searchByDevice')"
-            :loading="loading"
+            :loading="loading || deviceLoading"
             style="width: 240px"
             popper-class="v2-options-compact"
           />
+          <!-- 设备名只能从分页 RowGroup 里扫到，扫描不完整时标出实际范围 -->
+          <span
+            v-if="deviceScan.total > deviceScan.loaded"
+            class="whitespace-nowrap text-xs text-text-body tnum"
+            :title="t('tsfile.metadata.searchByDevice')"
+          >
+            ({{ deviceScan.loaded }} / {{ deviceScan.total }})
+          </span>
         </div>
         <div class="flex items-center gap-2">
           <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.measurements") }}:</span>

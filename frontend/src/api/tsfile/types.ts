@@ -100,6 +100,20 @@ export interface Chunk {
   maxValue?: string;
 }
 
+/**
+ * 分页响应，由 /api/meta/{fileId}/row-groups 与 /api/meta/{fileId}/chunks 共用。
+ *
+ * items 的元素类型由调用方指定；offset/limit 回显请求参数（limit 可能被服务端收窄），
+ * hasMore 是“是否还有下一页”的唯一判据，不要用 offset + items.length < total 自行推算。
+ */
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 export interface TsFileMetadata {
   fileId: string;
   version: string;
@@ -109,7 +123,9 @@ export interface TsFileMetadata {
   rowGroupCount: number;
   chunkCount: number;
   measurements: Measurement[];
+  /** 摘要接口恒为空数组，明细请用 metaApi.getRowGroupsPage() 分页拉取 */
   rowGroups: RowGroup[];
+  /** 摘要接口恒为空数组，明细请用 metaApi.getChunksPage() 分页拉取 */
   chunks: Chunk[];
   tables?: Table[]; // V4 table model tables
 }
