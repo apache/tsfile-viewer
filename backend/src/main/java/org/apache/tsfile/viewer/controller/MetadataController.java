@@ -20,6 +20,7 @@
 package org.apache.tsfile.viewer.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.DeviceMeasurementsDTO;
+import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TsFileMetadataDTO;
@@ -80,6 +83,26 @@ public class MetadataController {
 
     TsFileMetadataDTO metadata = metadataService.getMetadata(fileId);
     return ResponseEntity.ok(metadata);
+  }
+
+  /**
+   * Gets the measurements carried by one device.
+   *
+   * <p>Tree model files nest measurements under devices, so a client showing a device picker needs
+   * the measurement choices of the selected device instead of the whole file's union.
+   *
+   * @param fileId the file identifier
+   * @param device device name as returned by the RowGroup paging endpoint
+   * @return measurements of that device, empty when the device is not part of the file
+   */
+  @GetMapping("/{fileId}/devices/{device}/measurements")
+  public ResponseEntity<DeviceMeasurementsDTO> getDeviceMeasurements(
+      @PathVariable String fileId, @PathVariable String device)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    logger.debug("Getting measurements of device={} for fileId={}", device, fileId);
+
+    List<MeasurementDTO> measurements = metadataService.getDeviceMeasurements(fileId, device);
+    return ResponseEntity.ok(new DeviceMeasurementsDTO(device, measurements));
   }
 
   /**

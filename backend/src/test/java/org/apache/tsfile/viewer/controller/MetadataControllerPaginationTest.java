@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
@@ -238,5 +239,33 @@ class MetadataControllerPaginationTest {
         .minValue("1")
         .maxValue("10")
         .build();
+  }
+  @Test
+  @DisplayName("device measurements are returned for a known device")
+  void shouldReturnDeviceMeasurements() throws Exception {
+    when(metadataService.getDeviceMeasurements("file-1", "root.a.b"))
+        .thenReturn(
+            List.of(
+                MeasurementDTO.builder().name("temperature").dataType("FLOAT").build(),
+                MeasurementDTO.builder().name("humidity").dataType("INT32").build()));
+
+    mockMvc
+        .perform(get("/api/meta/file-1/devices/root.a.b/measurements"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.device").value("root.a.b"))
+        .andExpect(jsonPath("$.measurements.length()").value(2))
+        .andExpect(jsonPath("$.measurements[0].name").value("temperature"));
+  }
+
+  @Test
+  @DisplayName("device measurements are empty for an unknown device")
+  void shouldReturnEmptyMeasurementsForUnknownDevice() throws Exception {
+    when(metadataService.getDeviceMeasurements("file-1", "root.unknown")).thenReturn(List.of());
+
+    mockMvc
+        .perform(get("/api/meta/file-1/devices/root.unknown/measurements"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.device").value("root.unknown"))
+        .andExpect(jsonPath("$.measurements.length()").value(0));
   }
 }

@@ -32,9 +32,11 @@ import org.springframework.stereotype.Service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.tsfile.file.metadata.IDeviceID;
 import org.apache.tsfile.read.TsFileSequenceReader;
 import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TimeRange;
@@ -178,6 +180,43 @@ public class MetadataService {
     }
 
     return PageDTO.of(items, total, offset, limit);
+  }
+
+  /**
+   * Gets the measurements carried by one device.
+   *
+   * <p>Only that device's metadata is read; the device is resolved through the cached device index,
+   * so this does not walk the file.
+   *
+   * @param fileId the file identifier
+   * @param deviceName device name as returned by the RowGroup paging endpoint
+   * @return measurements of that device, empty when the device is not part of the file
+   * @throws TsFileNotFoundException if the file is not found
+   * @throws AccessDeniedException if the path is not allowed
+   * @throws IOException if the file cannot be read
+   */
+  public List<MeasurementDTO> getDeviceMeasurements(String fileId, String deviceName)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    logger.debug("Getting measurements of device={} for fileId={}", deviceName, fileId);
+
+    String filePath = resolveFilePath(fileId);
+    DeviceIndex deviceIndex = getDeviceIndex(fileId, filePath);
+
+    IDeviceID match = null;
+    for (IDeviceID device : deviceIndex.devices()) {
+      if (device.toString().equals(deviceName)) {
+        match = device;
+        break;
+      }
+    }
+    if (match == null) {
+      logger.debug("Device {} is not part of file {}", deviceName, filePath);
+      return List.of();
+    }
+
+    try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
+      return tsFileParser.readDeviceMeasurements(reader, match);
+    }
   }
 
   /**

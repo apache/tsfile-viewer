@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import type { Chunk, PagedResponse, RowGroup, TsFileMetadata } from "./types";
+import type {
+  Chunk,
+  DeviceMeasurements,
+  PagedResponse,
+  RowGroup,
+  TsFileMetadata,
+} from "./types";
 import { apiClient } from "../request";
 
 /**
@@ -42,4 +48,15 @@ export function getChunksPage(fileId: string, offset = 0, limit = 50) {
   return apiClient.get<unknown, PagedResponse<Chunk>>(`/meta/${fileId}/chunks`, {
     params: { offset, limit },
   });
+}
+
+/**
+ * 单个设备的测点清单。
+ *
+ * 树模型的层级是「设备 → 测点」，因此测点下拉要跟随所选设备；设备不存在时返回空列表。
+ */
+export function getDeviceMeasurements(fileId: string, device: string) {
+  return apiClient.get<unknown, DeviceMeasurements>(
+    `/meta/${fileId}/devices/${encodeURIComponent(device)}/measurements`,
+  );
 }

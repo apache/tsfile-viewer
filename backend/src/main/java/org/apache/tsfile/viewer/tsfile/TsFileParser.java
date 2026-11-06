@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.tsfile.enums.ColumnCategory;
+import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.file.metadata.ChunkMetadata;
 import org.apache.tsfile.file.metadata.IChunkMetadata;
 import org.apache.tsfile.file.metadata.IDeviceID;
@@ -755,6 +757,39 @@ public class TsFileParser {
       ScanResult scan = scan(reader, List.of(), false);
       return DeviceIndex.of(lastModified, size, scan.devices(), scan.chunkCounts());
     }
+  }
+
+  /**
+   * Reads the measurements carried by one device.
+   *
+   * <p>Tree model files nest measurements under devices, so the measurement choices a client
+   * offers have to come from the selected device rather than from the whole file. Only that
+   * device's metadata is read.
+   *
+   * @param reader TsFile reader
+   * @param device device to read
+   * @return measurements of that device, sorted by name, excluding the VECTOR time column
+   * @throws IOException if reading fails
+   */
+  public List<MeasurementDTO> readDeviceMeasurements(
+      TsFileSequenceReader reader, IDeviceID device) throws IOException {
+    Map<String, List<ChunkMetadata>> seriesMetadata = reader.readChunkMetadataInDevice(device);
+    List<MeasurementDTO> measurements = new ArrayList<>();
+    for (Map.Entry<String, List<ChunkMetadata>> entry : seriesMetadata.entrySet()) {
+      List<ChunkMetadata> chunkMetadata = entry.getValue();
+      if (chunkMetadata == null || chunkMetadata.isEmpty()) {
+        continue;
+      }
+      TSDataType dataType = chunkMetadata.get(0).getDataType();
+      // VECTOR is the aligned time column, not a user measurement (same rule as the read path)
+      if (dataType == TSDataType.VECTOR) {
+        continue;
+      }
+      measurements.add(
+          MeasurementDTO.builder().name(entry.getKey()).dataType(dataType.toString()).build());
+    }
+    measurements.sort(Comparator.comparing(MeasurementDTO::getName));
+    return measurements;
   }
 
   /**

@@ -22,7 +22,7 @@
  * TreeFilterPanel - 树模型筛选面板
  * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
-import type { AdvancedCondition, RowGroup, TsFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, Measurement, RowGroup, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -102,9 +102,30 @@ async function loadDeviceOptions() {
   }
 }
 
+// 所选设备的测点；null 表示还没取到（此时退回文件级并集，保证面板仍可用）
+const deviceMeasurements = ref<Measurement[] | null>(null);
+const deviceMeasurementsLoading = ref(false);
+
+async function loadDeviceMeasurements(device: string) {
+  deviceMeasurements.value = null;
+  if (!device || !props.fileId) return;
+  deviceMeasurementsLoading.value = true;
+  try {
+    const response = await metaApi.getDeviceMeasurements(props.fileId, device);
+    deviceMeasurements.value = response.measurements ?? [];
+  } catch {
+    // 级联信息取不到时退回文件级列表，不阻塞测点/时间范围筛选
+    deviceMeasurements.value = null;
+  } finally {
+    deviceMeasurementsLoading.value = false;
+  }
+}
+
+// 树模型的层级是「设备 → 测点」：测点选项取自所选设备，拿不到时才退回文件级并集
 const measurementOptions = computed(() => {
-  if (!metadata.value?.measurements) return [];
-  return metadata.value.measurements
+  const source = deviceMeasurements.value ?? metadata.value?.measurements;
+  if (!source) return [];
+  return source
     .map((m) => m.name)
     .filter(Boolean)
     .sort() as string[];
@@ -117,7 +138,8 @@ const CHART_DEFAULT_SERIES = 8;
 
 // 取前 N 个数值测点，作为图表默认序列
 function defaultChartMeasurements(): string[] {
-  return (metadata.value?.measurements || [])
+  const source = deviceMeasurements.value ?? metadata.value?.measurements ?? [];
+  return source
     .filter((m) => m.name && numericTypes.has(m.dataType?.toUpperCase() || ''))
     .map((m) => m.name)
     .slice(0, CHART_DEFAULT_SERIES);
@@ -158,6 +180,8 @@ async function loadMetadata() {
     await loadDeviceOptions();
     if (deviceOptions.value.length > 0) {
       selectedDevice.value = deviceOptions.value[0]!.value;
+      // 测点选项跟随设备，默认序列也必须基于该设备的测点
+      await loadDeviceMeasurements(selectedDevice.value);
     }
     // In chart mode, default to the first few numeric fields and trigger query
     if (props.chartMode && metadata.value?.measurements) {
@@ -228,6 +252,7 @@ watch(
 // el-select-v2 的 change 只在用户选值/清空时发出，程序化赋值不会触发。
 function handleDeviceChange() {
   selectedMeasurements.value = [];
+  void loadDeviceMeasurements(selectedDevice.value);
 }
 watch(timeRange, () => {
   selectedQuickRange.value = null;
@@ -255,7 +280,7 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             :options="deviceOptions"
             filterable
             :placeholder="t('tsfile.metadata.searchByDevice')"
-            :loading="loading || deviceLoading"
+            :loading="loading || deviceLoading || deviceMeasurementsLoading"
             style="width: 240px"
             popper-class="v2-options-compact"
             @change="handleDeviceChange"

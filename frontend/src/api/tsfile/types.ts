@@ -114,6 +114,16 @@ export interface PagedResponse<T> {
   hasMore: boolean;
 }
 
+/**
+ * 单个设备携带的测点。
+ *
+ * 树模型文件的测点挂在设备下，测点选项应跟随所选设备，而不是取整文件并集。
+ */
+export interface DeviceMeasurements {
+  device: string;
+  measurements: Measurement[];
+}
+
 export interface TsFileMetadata {
   fileId: string;
   version: string;
