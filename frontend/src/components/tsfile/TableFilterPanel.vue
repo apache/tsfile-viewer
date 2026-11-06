@@ -83,15 +83,65 @@ const tableOptions = computed(() => {
 });
 
 // 设备选项
-const deviceOptions = computed(() => {
-  if (!metadata.value?.rowGroups) return [];
-  const devices = new Set<string>();
-  for (const rowGroup of metadata.value.rowGroups) {
-    if (rowGroup.device) {
-      devices.add(rowGroup.device);
-    }
+//
+// 表模型的层级是「表 → 设备（TAG 组合）→ 字段」，所以设备清单按所选表取，
+// 并且只拉一页 + 输入时远程搜索：大文件的表可能有数万台设备（实测某表 87,488 台，
+// 一次性返回 16MB / 17s，不可用；分页后热态约十几毫秒）。
+const DEVICE_PAGE_SIZE = 50;
+
+const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const deviceLoading = ref(false);
+// 已选设备的标签缓存：远程搜索换了结果集后，已选项仍要能显示名字
+const deviceLabels = new Map<string, string>();
+let deviceSearchTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function loadDeviceOptions(tableName?: string, query?: string) {
+  if (!tableName || !props.fileId) {
+    deviceOptions.value = [];
+    return;
   }
-  return [...devices].map((d) => ({ label: d, value: d }));
+  deviceLoading.value = true;
+  try {
+    const page = await metaApi.getDevicesPage(props.fileId, {
+      tableName,
+      query: query || undefined,
+      offset: 0,
+      limit: DEVICE_PAGE_SIZE,
+    });
+    const options: { label: string; value: string }[] = [];
+    for (const item of page.items ?? []) {
+      if (!item.device) continue;
+      deviceLabels.set(item.device, item.device);
+      options.push({ label: item.device, value: item.device });
+    }
+    // 保留已选项，避免远程搜索后已选标签消失
+    for (const selected of selectedDevices.value) {
+      if (!options.some((o) => o.value === selected)) {
+        options.push({ label: deviceLabels.get(selected) ?? selected, value: selected });
+      }
+    }
+    deviceOptions.value = options;
+  } catch {
+    // 设备清单拉取失败不应拖垮面板：表 / 字段 / 时间范围筛选仍然可用
+    deviceOptions.value = [];
+  } finally {
+    deviceLoading.value = false;
+  }
+}
+
+/** 下拉输入时远程搜索（去抖，避免每敲一个字符打一次请求） */
+function searchDevices(query: string) {
+  if (deviceSearchTimer) clearTimeout(deviceSearchTimer);
+  deviceSearchTimer = setTimeout(() => {
+    void loadDeviceOptions(selectedTable.value ?? undefined, query.trim());
+  }, 250);
+}
+
+// 切换表：设备属于表，旧设备选择必须失效并按新表重新取
+watch(selectedTable, (tableName) => {
+  selectedDevices.value = [];
+  deviceLabels.clear();
+  void loadDeviceOptions(tableName ?? undefined);
 });
 
 // 字段选项（根据选中的表过滤）
@@ -328,8 +378,10 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             multiple
             :placeholder="t('tsfile.data.selectDevicesPlaceholder')"
             :disabled="loading || !selectedTable"
-            :loading="loading"
+            :loading="loading || deviceLoading"
             filterable
+            remote
+            :remote-method="searchDevices"
             collapse-tags
             :max-collapse-tags="1"
             style="min-width: 220px; max-width: 360px"

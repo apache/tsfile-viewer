@@ -48,6 +48,7 @@ import org.apache.tsfile.viewer.dto.TableListResponse;
 import org.apache.tsfile.viewer.dto.TableListResponse.TableInfo;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
+import org.apache.tsfile.viewer.tsfile.TableSchemaSupport;
 
 /**
  * Service for table-level data operations.
@@ -89,7 +90,7 @@ public class TableService {
     List<TableInfo> tableInfos = new ArrayList<>();
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(new File(filePath)).build()) {
-      List<TableSchema> schemas = reader.getAllTableSchema();
+      List<TableSchema> schemas = TableSchemaSupport.readAll(reader);
 
       if (schemas == null || schemas.isEmpty()) {
         logger.debug("No tables found in file: {}", filePath);
@@ -161,7 +162,7 @@ public class TableService {
     Map<String, DeviceInfo> deviceMap = new HashMap<>();
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(new File(filePath)).build()) {
-      List<TableSchema> schemas = reader.getAllTableSchema();
+      List<TableSchema> schemas = TableSchemaSupport.readAll(reader);
 
       if (schemas == null || schemas.isEmpty()) {
         return DeviceListResponse.builder().devices(new ArrayList<>()).totalCount(0).build();

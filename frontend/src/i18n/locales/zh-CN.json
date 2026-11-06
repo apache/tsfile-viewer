@@ -108,6 +108,7 @@
       "dataType": "数据类型",
       "encoding": "编码方式",
       "compression": "压缩方式",
+      "encodingCompression": "编码/压缩",
       "rowGroupIndex": "索引",
       "device": "设备",
       "chunkMeasurement": "测点",
@@ -304,7 +305,8 @@
         "STRUCTURE_CORRUPT": "结构损坏",
         "CHUNK_STATISTICS_MISMATCH": "Chunk 统计不一致",
         "TIMESERIES_METADATA_MISMATCH": "元数据不一致",
-        "DATA_READ_ERROR": "数据读取异常"
+        "DATA_READ_ERROR": "数据读取异常",
+        "DATA_VALIDATION_SKIPPED": "已跳过数据区校验"
       },
       "taskStatus": {
         "QUEUED": "排队中",

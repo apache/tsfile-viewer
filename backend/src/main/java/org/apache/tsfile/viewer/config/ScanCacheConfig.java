@@ -78,11 +78,13 @@ public class ScanCacheConfig {
    * <p>The health checker is a pure Java class with no Spring dependencies, so it is registered as
    * a bean here to allow injection into Spring-managed services.
    *
+   * @param tsFileProperties configuration supplying the chunk cap for the data-area traversal
    * @return a new TsFileHealthChecker instance
    */
   @Bean
-  public TsFileHealthChecker tsFileHealthChecker() {
-    logger.info("Initializing TsFileHealthChecker bean");
-    return new TsFileHealthChecker();
+  public TsFileHealthChecker tsFileHealthChecker(TsFileProperties tsFileProperties) {
+    int maxChunks = tsFileProperties.getScan().getMaxChunks();
+    logger.info("Initializing TsFileHealthChecker bean with maxChunks={}", maxChunks);
+    return new TsFileHealthChecker(maxChunks);
   }
 }

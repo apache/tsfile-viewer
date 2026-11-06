@@ -21,9 +21,11 @@ package org.apache.tsfile.viewer.tsfile;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -32,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.tsfile.enums.ColumnCategory;
+import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.file.metadata.ChunkMetadata;
 import org.apache.tsfile.file.metadata.IChunkMetadata;
 import org.apache.tsfile.file.metadata.IDeviceID;
@@ -385,76 +388,28 @@ public class TsFileParser {
    * @throws IOException if the file cannot be read
    */
   private ParsedMetadata parseMetadataInternal(TsFileSequenceReader reader) throws IOException {
-    // Get version
     byte versionNumber = reader.readVersionNumber();
+    ScanResult scan = scan(reader, List.of(), false);
     String version = "V" + versionNumber;
-
-    // Get all devices
-    List<IDeviceID> devices = reader.getAllDevices();
-    int deviceCount = devices.size();
-
-    // Get all timeseries metadata to calculate measurements, time range, and counts
-    Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
-        reader.getAllTimeseriesMetadata(true);
-
-    // Calculate unique measurements and time range
-    Set<String> uniqueMeasurements = new HashSet<>();
-    long minStartTime = Long.MAX_VALUE;
-    long maxEndTime = Long.MIN_VALUE;
-    int totalChunkCount = 0;
-    int rowGroupCount = 0;
-
-    for (Map.Entry<IDeviceID, List<TimeseriesMetadata>> entry : allTimeseriesMetadata.entrySet()) {
-      List<TimeseriesMetadata> timeseriesMetadataList = entry.getValue();
-      rowGroupCount++; // Each device entry represents a RowGroup
-
-      for (TimeseriesMetadata tsMetadata : timeseriesMetadataList) {
-        uniqueMeasurements.add(tsMetadata.getMeasurementId());
-
-        // Get time range from statistics
-        Statistics<? extends Serializable> stats = tsMetadata.getStatistics();
-        if (stats != null) {
-          if (stats.getStartTime() < minStartTime) {
-            minStartTime = stats.getStartTime();
-          }
-          if (stats.getEndTime() > maxEndTime) {
-            maxEndTime = stats.getEndTime();
-          }
-        }
-
-        // Count chunks
-        List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
-        if (chunkMetadataList != null) {
-          totalChunkCount += chunkMetadataList.size();
-        }
-      }
-    }
-
-    // Handle case where no data exists
-    if (minStartTime == Long.MAX_VALUE) {
-      minStartTime = 0;
-    }
-    if (maxEndTime == Long.MIN_VALUE) {
-      maxEndTime = 0;
-    }
 
     logger.debug(
         "Parsed metadata: version={}, devices={}, measurements={}, rowGroups={}, chunks={}",
         version,
-        deviceCount,
-        uniqueMeasurements.size(),
-        rowGroupCount,
-        totalChunkCount);
+        scan.devices().size(),
+        scan.measurementCount(),
+        scan.devices().size(),
+        totalChunks(scan));
 
     return new ParsedMetadata(
         version,
-        minStartTime,
-        maxEndTime,
-        deviceCount,
-        uniqueMeasurements.size(),
-        rowGroupCount,
-        totalChunkCount);
+        scan.startTime(),
+        scan.endTime(),
+        scan.devices().size(),
+        scan.measurementCount(),
+        scan.devices().size(),
+        totalChunks(scan));
   }
+
 
   /**
    * Parses measurement schema details from a TsFileSequenceReader.
@@ -478,156 +433,11 @@ public class TsFileParser {
    */
   public List<MeasurementInfo> parseMeasurements(TsFileSequenceReader reader) throws IOException {
     logger.debug("Parsing measurements from TsFile");
-
-    Map<String, MeasurementInfo> measurementMap = new LinkedHashMap<>();
-
-    // Try to read as V4 table model first to get column categories and schema info
-    Map<String, ColumnCategory> columnCategories = new HashMap<>();
-    Map<String, IMeasurementSchema> columnSchemas = new HashMap<>();
-    boolean isTableModel = false;
-    try {
-      String tsfilePath = reader.getFileName();
-      Path path = Paths.get(tsfilePath);
-      logger.debug("Attempting to read TableSchema from: {}", tsfilePath);
-      try (ITsFileReader v4Reader = new TsFileReaderBuilder().file(path.toFile()).build()) {
-        List<TableSchema> schemas = v4Reader.getAllTableSchema();
-        if (schemas != null && !schemas.isEmpty()) {
-          isTableModel = true;
-          logger.debug("Found {} table schemas in V4 format", schemas.size());
-          for (TableSchema schema : schemas) {
-            logger.debug("Processing table schema: {}", schema.getTableName());
-            List<IMeasurementSchema> schemaList = schema.getColumnSchemas();
-            List<ColumnCategory> categories = schema.getColumnTypes();
-
-            // Column schemas and categories lists are parallel - same index corresponds to
-            // same column
-            if (schemaList != null && categories != null) {
-              for (int i = 0; i < schemaList.size() && i < categories.size(); i++) {
-                IMeasurementSchema columnSchema = schemaList.get(i);
-                ColumnCategory category = categories.get(i);
-                String columnName = columnSchema.getMeasurementName();
-
-                if (category != null) {
-                  columnCategories.put(columnName, category);
-                  columnSchemas.put(columnName, columnSchema);
-                  logger.debug("  Column {} has category {}", columnName, category);
-
-                  // For table model, add TAG columns directly since they won't appear in
-                  // TimeseriesMetadata
-                  if (category == ColumnCategory.TAG) {
-                    String dataType =
-                        columnSchema.getType() != null
-                            ? columnSchema.getType().toString()
-                            : "STRING";
-                    String encoding =
-                        columnSchema.getEncodingType() != null
-                            ? columnSchema.getEncodingType().toString()
-                            : "PLAIN";
-                    String compression =
-                        columnSchema.getCompressor() != null
-                            ? columnSchema.getCompressor().toString()
-                            : "UNCOMPRESSED";
-
-                    measurementMap.put(
-                        columnName,
-                        new MeasurementInfo(columnName, dataType, encoding, compression, "TAG"));
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (Exception e) {
-      logger.debug("Not a V4 table model file or failed to read TableSchema: {}", e.getMessage());
-    }
-
-    // Parse measurements from TimeseriesMetadata
-    Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
-        reader.getAllTimeseriesMetadata(true);
-
-    for (Map.Entry<IDeviceID, List<TimeseriesMetadata>> entry : allTimeseriesMetadata.entrySet()) {
-      List<TimeseriesMetadata> timeseriesMetadataList = entry.getValue();
-
-      for (TimeseriesMetadata tsMetadata : timeseriesMetadataList) {
-        String measurementId = tsMetadata.getMeasurementId();
-
-        // Skip if already processed
-        if (measurementMap.containsKey(measurementId)) {
-          continue;
-        }
-
-        // Get data type from TimeseriesMetadata
-        String dataType = tsMetadata.getTsDataType().toString();
-
-        // Get encoding and compression - prioritize TableSchema for V4 table model
-        String encoding = "UNKNOWN";
-        String compression = "UNKNOWN";
-
-        // For V4 table model, try to get from TableSchema first
-        IMeasurementSchema tableSchema = columnSchemas.get(measurementId);
-        if (tableSchema != null) {
-          if (tableSchema.getEncodingType() != null) {
-            encoding = tableSchema.getEncodingType().toString();
-          }
-          if (tableSchema.getCompressor() != null) {
-            compression = tableSchema.getCompressor().toString();
-          }
-          logger.debug(
-              "Got encoding/compression from TableSchema for {}: {}/{}",
-              measurementId,
-              encoding,
-              compression);
-        } else {
-          // Fallback to ChunkHeader for tree model files
-          // Read ChunkHeader from file to get encoding and compression
-          List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
-          if (chunkMetadataList != null && !chunkMetadataList.isEmpty()) {
-            IChunkMetadata firstChunk = chunkMetadataList.get(0);
-            if (firstChunk instanceof ChunkMetadata chunkMeta) {
-              try {
-                // Read the chunk which includes the header with encoding/compression info
-                org.apache.tsfile.read.common.Chunk chunk = reader.readMemChunk(chunkMeta);
-                if (chunk != null && chunk.getHeader() != null) {
-                  org.apache.tsfile.file.header.ChunkHeader chunkHeader = chunk.getHeader();
-                  if (chunkHeader.getEncodingType() != null) {
-                    encoding = chunkHeader.getEncodingType().toString();
-                  }
-                  if (chunkHeader.getCompressionType() != null) {
-                    compression = chunkHeader.getCompressionType().toString();
-                  }
-                  logger.debug(
-                      "Read encoding/compression from ChunkHeader for {}: {}/{}",
-                      measurementId,
-                      encoding,
-                      compression);
-                }
-              } catch (Exception e) {
-                logger.debug(
-                    "Could not read ChunkHeader for measurement {}: {}",
-                    measurementId,
-                    e.getMessage());
-              }
-            }
-          }
-        }
-
-        // Get column category from V4 TableSchema if available
-        String columnCategory = "FIELD"; // Default to FIELD
-        ColumnCategory category = columnCategories.get(measurementId);
-        if (category != null) {
-          columnCategory = category.toString();
-        }
-
-        measurementMap.put(
-            measurementId,
-            new MeasurementInfo(measurementId, dataType, encoding, compression, columnCategory));
-      }
-    }
-
-    logger.debug("Parsed {} unique measurements", measurementMap.size());
-    return new ArrayList<>(measurementMap.values());
+    ScanResult scan = scan(reader, readTableSchemas(reader), true);
+    logger.debug("Parsed {} unique measurements", scan.measurements().size());
+    return scan.measurements();
   }
+
 
   /**
    * Parses table schemas from a V4 table model TsFile.
@@ -641,83 +451,11 @@ public class TsFileParser {
    */
   public List<TableInfo> parseTables(TsFileSequenceReader reader) throws IOException {
     logger.debug("Parsing table schemas from TsFile");
-
-    List<TableInfo> tableInfos = new ArrayList<>();
-
-    try {
-      String tsfilePath = reader.getFileName();
-      Path path = Paths.get(tsfilePath);
-      logger.debug("Attempting to read TableSchema from: {}", tsfilePath);
-
-      try (ITsFileReader v4Reader = new TsFileReaderBuilder().file(path.toFile()).build()) {
-        List<TableSchema> schemas = v4Reader.getAllTableSchema();
-
-        if (schemas == null || schemas.isEmpty()) {
-          logger.debug("No table schemas found - this is a tree model file");
-          return tableInfos;
-        }
-
-        logger.debug("Found {} table schemas in V4 format", schemas.size());
-
-        for (TableSchema schema : schemas) {
-          String tableName = schema.getTableName();
-          logger.debug("Processing table: {}", tableName);
-
-          List<MeasurementInfo> tagColumns = new ArrayList<>();
-          List<MeasurementInfo> fieldColumns = new ArrayList<>();
-
-          List<IMeasurementSchema> columnSchemas = schema.getColumnSchemas();
-          List<ColumnCategory> categories = schema.getColumnTypes();
-
-          if (columnSchemas != null && categories != null) {
-            for (int i = 0; i < columnSchemas.size() && i < categories.size(); i++) {
-              IMeasurementSchema columnSchema = columnSchemas.get(i);
-              ColumnCategory category = categories.get(i);
-              String columnName = columnSchema.getMeasurementName();
-
-              String dataType =
-                  columnSchema.getType() != null ? columnSchema.getType().toString() : "UNKNOWN";
-              String encoding =
-                  columnSchema.getEncodingType() != null
-                      ? columnSchema.getEncodingType().toString()
-                      : "PLAIN";
-              String compression =
-                  columnSchema.getCompressor() != null
-                      ? columnSchema.getCompressor().toString()
-                      : "UNCOMPRESSED";
-
-              MeasurementInfo columnInfo =
-                  new MeasurementInfo(
-                      columnName, dataType, encoding, compression, category.toString());
-
-              if (category == ColumnCategory.TAG) {
-                tagColumns.add(columnInfo);
-                logger.debug("  TAG column: {}", columnName);
-              } else if (category == ColumnCategory.FIELD) {
-                fieldColumns.add(columnInfo);
-                logger.debug("  FIELD column: {}", columnName);
-              }
-            }
-          }
-
-          TableInfo tableInfo = new TableInfo(tableName, tagColumns, fieldColumns);
-          tableInfos.add(tableInfo);
-
-          logger.debug(
-              "Table '{}': {} TAG columns, {} FIELD columns, {} total",
-              tableName,
-              tagColumns.size(),
-              fieldColumns.size(),
-              tableInfo.getTotalColumns());
-        }
-      }
-    } catch (Exception e) {
-      logger.debug("Not a V4 table model file or failed to read tables: {}", e.getMessage());
-    }
-
+    List<TableInfo> tableInfos = toTableInfos(readTableSchemas(reader));
     logger.debug("Parsed {} tables total", tableInfos.size());
     return tableInfos;
   }
+
 
   /**
    * Parses RowGroup metadata from a TsFileSequenceReader.
@@ -731,52 +469,53 @@ public class TsFileParser {
    */
   public List<RowGroupInfo> parseRowGroups(TsFileSequenceReader reader) throws IOException {
     logger.debug("Parsing RowGroups from TsFile");
-
-    List<RowGroupInfo> rowGroups = new ArrayList<>();
-    Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
-        reader.getAllTimeseriesMetadata(true);
-
-    int index = 0;
-    for (Map.Entry<IDeviceID, List<TimeseriesMetadata>> entry : allTimeseriesMetadata.entrySet()) {
-      IDeviceID device = entry.getKey();
-      List<TimeseriesMetadata> timeseriesMetadataList = entry.getValue();
-
-      long minStartTime = Long.MAX_VALUE;
-      long maxEndTime = Long.MIN_VALUE;
-      int chunkCount = 0;
-
-      for (TimeseriesMetadata tsMetadata : timeseriesMetadataList) {
-        Statistics<? extends Serializable> stats = tsMetadata.getStatistics();
-        if (stats != null) {
-          if (stats.getStartTime() < minStartTime) {
-            minStartTime = stats.getStartTime();
-          }
-          if (stats.getEndTime() > maxEndTime) {
-            maxEndTime = stats.getEndTime();
-          }
-        }
-
-        List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
-        if (chunkMetadataList != null) {
-          chunkCount += chunkMetadataList.size();
-        }
-      }
-
-      // Handle case where no data exists
-      if (minStartTime == Long.MAX_VALUE) {
-        minStartTime = 0;
-      }
-      if (maxEndTime == Long.MIN_VALUE) {
-        maxEndTime = 0;
-      }
-
-      rowGroups.add(
-          new RowGroupInfo(index++, device.toString(), minStartTime, maxEndTime, chunkCount));
+    List<IDeviceID> devices = reader.getAllDevices();
+    List<RowGroupInfo> rowGroups = new ArrayList<>(devices.size());
+    for (int i = 0; i < devices.size(); i++) {
+      rowGroups.add(readRowGroupInfo(reader, devices.get(i), i));
     }
-
     logger.debug("Parsed {} RowGroups", rowGroups.size());
     return rowGroups;
   }
+
+  /**
+   * Reads the RowGroup metadata of a single device.
+   *
+   * @param reader TsFile reader
+   * @param device device to read
+   * @param index RowGroup index of that device
+   * @return RowGroup metadata of that single device
+   * @throws IOException if reading fails
+   */
+  private RowGroupInfo readRowGroupInfo(TsFileSequenceReader reader, IDeviceID device, int index)
+      throws IOException {
+    long minStartTime = Long.MAX_VALUE;
+    long maxEndTime = Long.MIN_VALUE;
+    int chunkCount = 0;
+
+    List<TimeseriesMetadata> deviceMetadata = reader.getDeviceTimeseriesMetadata(device);
+    if (deviceMetadata != null) {
+      for (TimeseriesMetadata tsMetadata : deviceMetadata) {
+        Statistics<? extends Serializable> stats = tsMetadata.getStatistics();
+        if (stats != null) {
+          minStartTime = Math.min(minStartTime, stats.getStartTime());
+          maxEndTime = Math.max(maxEndTime, stats.getEndTime());
+        }
+
+        chunkCount += countChunks(tsMetadata.getChunkMetadataList());
+      }
+    }
+
+    if (minStartTime == Long.MAX_VALUE) {
+      minStartTime = 0;
+    }
+    if (maxEndTime == Long.MIN_VALUE) {
+      maxEndTime = 0;
+    }
+
+    return new RowGroupInfo(index, device.toString(), minStartTime, maxEndTime, chunkCount);
+  }
+
 
   /**
    * Parses Chunk metadata from a TsFileSequenceReader.
@@ -790,100 +529,110 @@ public class TsFileParser {
    */
   public List<ChunkInfo> parseChunks(TsFileSequenceReader reader) throws IOException {
     logger.debug("Parsing Chunks from TsFile");
-
     List<ChunkInfo> chunks = new ArrayList<>();
-    Map<IDeviceID, List<TimeseriesMetadata>> allTimeseriesMetadata =
-        reader.getAllTimeseriesMetadata(true);
-
-    for (Map.Entry<IDeviceID, List<TimeseriesMetadata>> entry : allTimeseriesMetadata.entrySet()) {
-      IDeviceID device = entry.getKey();
-      List<TimeseriesMetadata> timeseriesMetadataList = entry.getValue();
-
-      for (TimeseriesMetadata tsMetadata : timeseriesMetadataList) {
-        String measurementId = tsMetadata.getMeasurementId();
-        List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
-
-        if (chunkMetadataList == null) {
-          continue;
-        }
-
-        for (IChunkMetadata iChunkMeta : chunkMetadataList) {
-          if (!(iChunkMeta instanceof ChunkMetadata chunkMeta)) {
-            continue;
-          }
-
-          long offset = chunkMeta.getOffsetOfChunkHeader();
-          Statistics<? extends Serializable> stats = chunkMeta.getStatistics();
-
-          long startTime = stats != null ? stats.getStartTime() : 0;
-          long endTime = stats != null ? stats.getEndTime() : 0;
-          long numOfPoints = chunkMeta.getNumOfPoints();
-
-          // Get data type
-          String dataType =
-              chunkMeta.getDataType() != null ? chunkMeta.getDataType().toString() : "UNKNOWN";
-
-          // Get encoding and compression from ChunkHeader
-          String encoding = "UNKNOWN";
-          String compression = "UNKNOWN";
-          try {
-            org.apache.tsfile.read.common.Chunk chunk = reader.readMemChunk(chunkMeta);
-            if (chunk != null && chunk.getHeader() != null) {
-              org.apache.tsfile.file.header.ChunkHeader chunkHeader = chunk.getHeader();
-              if (chunkHeader.getEncodingType() != null) {
-                encoding = chunkHeader.getEncodingType().toString();
-              }
-              if (chunkHeader.getCompressionType() != null) {
-                compression = chunkHeader.getCompressionType().toString();
-              }
-            }
-          } catch (Exception e) {
-            logger.debug(
-                "Could not read ChunkHeader for chunk at offset {}: {}", offset, e.getMessage());
-          }
-
-          // Get min/max values from statistics
-          String minValue = null;
-          String maxValue = null;
-          if (stats != null) {
-            try {
-              Object min = stats.getMinValue();
-              Object max = stats.getMaxValue();
-              minValue = min != null ? min.toString() : null;
-              maxValue = max != null ? max.toString() : null;
-            } catch (Exception e) {
-              logger.debug("Could not get min/max values from statistics: {}", e.getMessage());
-            }
-          }
-
-          // Calculate compression ratio
-          double compressionRatio = calculateCompressionRatio(chunkMeta, numOfPoints);
-
-          // Size is estimated from the chunk metadata
-          long size = estimateChunkSize(chunkMeta);
-
-          chunks.add(
-              new ChunkInfo(
-                  measurementId,
-                  offset,
-                  size,
-                  compressionRatio,
-                  device.toString(),
-                  startTime,
-                  endTime,
-                  numOfPoints,
-                  dataType,
-                  encoding,
-                  compression,
-                  minValue,
-                  maxValue));
-        }
-      }
+    for (IDeviceID device : reader.getAllDevices()) {
+      chunks.addAll(readChunkInfos(reader, device));
     }
-
     logger.debug("Parsed {} Chunks", chunks.size());
     return chunks;
   }
+
+  /**
+   * Reads the chunk metadata of a single device.
+   *
+   * <p>Bounded by one device instead of the whole file, which is what keeps a chunk page
+   * incremental.
+   *
+   * @param reader TsFile reader
+   * @param device device to read
+   * @return chunk metadata of that single device, in file order
+   * @throws IOException if reading fails
+   */
+  private List<ChunkInfo> readChunkInfos(TsFileSequenceReader reader, IDeviceID device)
+      throws IOException {
+    List<ChunkInfo> chunks = new ArrayList<>();
+    List<TimeseriesMetadata> deviceMetadata = reader.getDeviceTimeseriesMetadata(device);
+    if (deviceMetadata == null) {
+      return chunks;
+    }
+
+    for (TimeseriesMetadata tsMetadata : deviceMetadata) {
+      String measurementId = tsMetadata.getMeasurementId();
+      List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
+
+      if (chunkMetadataList == null) {
+        continue;
+      }
+
+      for (IChunkMetadata iChunkMeta : chunkMetadataList) {
+        if (!(iChunkMeta instanceof ChunkMetadata chunkMeta)) {
+          continue;
+        }
+
+        long offset = chunkMeta.getOffsetOfChunkHeader();
+        Statistics<? extends Serializable> stats = chunkMeta.getStatistics();
+
+        long startTime = stats != null ? stats.getStartTime() : 0;
+        long endTime = stats != null ? stats.getEndTime() : 0;
+        long numOfPoints = chunkMeta.getNumOfPoints();
+
+        String dataType =
+            chunkMeta.getDataType() != null ? chunkMeta.getDataType().toString() : "UNKNOWN";
+
+        String encoding = "UNKNOWN";
+        String compression = "UNKNOWN";
+        try {
+          org.apache.tsfile.read.common.Chunk chunk = reader.readMemChunk(chunkMeta);
+          if (chunk != null && chunk.getHeader() != null) {
+            org.apache.tsfile.file.header.ChunkHeader chunkHeader = chunk.getHeader();
+            if (chunkHeader.getEncodingType() != null) {
+              encoding = chunkHeader.getEncodingType().toString();
+            }
+            if (chunkHeader.getCompressionType() != null) {
+              compression = chunkHeader.getCompressionType().toString();
+            }
+          }
+        } catch (Exception e) {
+          logger.debug(
+              "Could not read ChunkHeader for chunk at offset {}: {}", offset, e.getMessage());
+        }
+
+        String minValue = null;
+        String maxValue = null;
+        if (stats != null) {
+          try {
+            Object min = stats.getMinValue();
+            Object max = stats.getMaxValue();
+            minValue = min != null ? min.toString() : null;
+            maxValue = max != null ? max.toString() : null;
+          } catch (Exception e) {
+            logger.debug("Could not get min/max values from statistics: {}", e.getMessage());
+          }
+        }
+
+        double compressionRatio = calculateCompressionRatio(chunkMeta, numOfPoints);
+        long size = estimateChunkSize(chunkMeta);
+
+        chunks.add(
+            new ChunkInfo(
+                measurementId,
+                offset,
+                size,
+                compressionRatio,
+                device.toString(),
+                startTime,
+                endTime,
+                numOfPoints,
+                dataType,
+                encoding,
+                compression,
+                minValue,
+                maxValue));
+      }
+    }
+    return chunks;
+  }
+
 
   /**
    * Calculates an estimated compression ratio for a chunk.
@@ -939,132 +688,491 @@ public class TsFileParser {
     return chunkMeta.serializedSize(true);
   }
 
-  // ============== Unified Parse Method ==============
+  // ============== Incremental Summary & Paging ==============
 
-  /**
-   * Result of parsing all metadata from a TsFile in a single pass. Opens the file only once,
-   * avoiding the overhead of 5+ separate file opens that the individual parse methods incur.
-   */
-  public record AllMetadata(
+  /** Summary metadata of a TsFile plus the device index used by the paging endpoints. */
+  public record SummaryMetadata(
       BasicMetadata basic,
       List<MeasurementDTO> measurements,
-      List<RowGroupDTO> rowGroups,
-      List<ChunkDTO> chunks,
-      List<org.apache.tsfile.viewer.dto.TableDTO> tables) {}
+      List<org.apache.tsfile.viewer.dto.TableDTO> tables,
+      DeviceIndex deviceIndex) {}
 
   /**
-   * Parses all metadata from a TsFile in a single pass, opening the file only once.
+   * Parses summary metadata from a TsFile in one streaming pass.
    *
-   * <p>This is significantly more efficient than calling {@link #parseMetadata(String)}, {@link
-   * #parseMeasurements(String)}, {@link #parseRowGroups(String)}, {@link #parseChunks(String)}, and
-   * {@link #parseTables(String)} separately, which each open their own reader (5-7 file opens
-   * total).
+   * <p>Never materializes the file's whole timeseries metadata: each device's metadata is read,
+   * folded into counters, and dropped before the next device is visited.
    *
    * @param filePath path to the TsFile
-   * @return AllMetadata containing all parsed metadata
+   * @return summary metadata plus the device index of the same file version
    * @throws IOException if the file cannot be read
    */
-  public AllMetadata parseAll(String filePath) throws IOException {
-    logger.debug("Parsing all metadata from TsFile in single pass: {}", filePath);
+  public SummaryMetadata parseSummary(String filePath) throws IOException {
+    logger.debug("Parsing summary metadata from TsFile: {}", filePath);
+    Path path = Paths.get(filePath);
+    long lastModified = Files.getLastModifiedTime(path).toMillis();
+    long size = Files.size(path);
+
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
-      ParsedMetadata parsed = parseMetadataInternal(reader);
+      String version = "V" + reader.readVersionNumber();
+      List<TableSchema> schemas = readTableSchemas(reader);
+      ScanResult scan = scan(reader, schemas, true);
+
       BasicMetadata basic =
           new BasicMetadata(
-              parsed.getVersion(),
-              parsed.getStartTime(),
-              parsed.getEndTime(),
-              parsed.getDeviceCount(),
-              parsed.getMeasurementCount(),
-              parsed.getRowGroupCount(),
-              parsed.getChunkCount());
+              version,
+              scan.startTime(),
+              scan.endTime(),
+              scan.devices().size(),
+              scan.measurementCount(),
+              scan.devices().size(),
+              totalChunks(scan));
 
       List<MeasurementDTO> measurements =
-          parseMeasurements(reader).stream()
-              .map(
-                  info ->
-                      MeasurementDTO.builder()
-                          .name(info.getName())
-                          .dataType(info.getDataType())
-                          .encoding(info.getEncoding())
-                          .compression(info.getCompression())
-                          .columnCategory(info.getColumnCategory())
-                          .build())
-              .toList();
-
-      List<RowGroupDTO> rowGroups =
-          parseRowGroups(reader).stream()
-              .map(
-                  info ->
-                      RowGroupDTO.builder()
-                          .index(info.getIndex())
-                          .device(info.getDevice())
-                          .startTime(info.getStartTime())
-                          .endTime(info.getEndTime())
-                          .chunkCount(info.getChunkCount())
-                          .build())
-              .toList();
-
-      List<ChunkDTO> chunks =
-          parseChunks(reader).stream()
-              .map(
-                  info ->
-                      ChunkDTO.builder()
-                          .measurement(info.getMeasurement())
-                          .offset(info.getOffset())
-                          .size(info.getSize())
-                          .compressionRatio(info.getCompressionRatio())
-                          .device(info.getDevice())
-                          .dataType(info.getDataType())
-                          .encoding(info.getEncoding())
-                          .compression(info.getCompression())
-                          .startTime(info.getStartTime())
-                          .endTime(info.getEndTime())
-                          .numOfPoints(info.getNumOfPoints())
-                          .minValue(info.getMinValue())
-                          .maxValue(info.getMaxValue())
-                          .build())
-              .toList();
-
+          scan.measurements().stream().map(TsFileParser::toMeasurementDTO).toList();
       List<org.apache.tsfile.viewer.dto.TableDTO> tables =
-          parseTables(reader).stream()
-              .map(
-                  info -> {
-                    List<MeasurementDTO> tagDTOs =
-                        info.getTagColumns().stream()
-                            .map(
-                                col ->
-                                    MeasurementDTO.builder()
-                                        .name(col.getName())
-                                        .dataType(col.getDataType())
-                                        .encoding(col.getEncoding())
-                                        .compression(col.getCompression())
-                                        .columnCategory(col.getColumnCategory())
-                                        .build())
-                            .toList();
-                    List<MeasurementDTO> fieldDTOs =
-                        info.getFieldColumns().stream()
-                            .map(
-                                col ->
-                                    MeasurementDTO.builder()
-                                        .name(col.getName())
-                                        .dataType(col.getDataType())
-                                        .encoding(col.getEncoding())
-                                        .compression(col.getCompression())
-                                        .columnCategory(col.getColumnCategory())
-                                        .build())
-                            .toList();
-                    return org.apache.tsfile.viewer.dto.TableDTO.builder()
-                        .tableName(info.getTableName())
-                        .tagColumns(tagDTOs)
-                        .fieldColumns(fieldDTOs)
-                        .totalColumns(info.getTotalColumns())
-                        .build();
-                  })
-              .toList();
+          toTableInfos(schemas).stream().map(TsFileParser::toTableDTO).toList();
 
-      return new AllMetadata(basic, measurements, rowGroups, chunks, tables);
+      return new SummaryMetadata(
+          basic,
+          measurements,
+          tables,
+          DeviceIndex.of(lastModified, size, scan.devices(), scan.chunkCounts()));
     }
   }
+
+  /**
+   * Builds the device index of a TsFile without parsing measurements.
+   *
+   * @param filePath path to the TsFile
+   * @return device index stamped with the file version it was read from
+   * @throws IOException if the file cannot be read
+   */
+  public DeviceIndex parseDeviceIndex(String filePath) throws IOException {
+    Path path = Paths.get(filePath);
+    long lastModified = Files.getLastModifiedTime(path).toMillis();
+    long size = Files.size(path);
+
+    try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
+      ScanResult scan = scan(reader, List.of(), false);
+      return DeviceIndex.of(lastModified, size, scan.devices(), scan.chunkCounts());
+    }
+  }
+
+  /**
+   * Reads the measurements carried by one device.
+   *
+   * <p>Tree model files nest measurements under devices, so the measurement choices a client
+   * offers have to come from the selected device rather than from the whole file. Only that
+   * device's metadata is read.
+   *
+   * @param reader TsFile reader
+   * @param device device to read
+   * @return measurements of that device, sorted by name, excluding the VECTOR time column
+   * @throws IOException if reading fails
+   */
+  public List<MeasurementDTO> readDeviceMeasurements(
+      TsFileSequenceReader reader, IDeviceID device) throws IOException {
+    Map<String, List<ChunkMetadata>> seriesMetadata = reader.readChunkMetadataInDevice(device);
+    List<MeasurementDTO> measurements = new ArrayList<>();
+    for (Map.Entry<String, List<ChunkMetadata>> entry : seriesMetadata.entrySet()) {
+      List<ChunkMetadata> chunkMetadata = entry.getValue();
+      if (chunkMetadata == null || chunkMetadata.isEmpty()) {
+        continue;
+      }
+      TSDataType dataType = chunkMetadata.get(0).getDataType();
+      // VECTOR is the aligned time column, not a user measurement (same rule as the read path)
+      if (dataType == TSDataType.VECTOR) {
+        continue;
+      }
+      measurements.add(
+          MeasurementDTO.builder().name(entry.getKey()).dataType(dataType.toString()).build());
+    }
+    measurements.sort(Comparator.comparing(MeasurementDTO::getName));
+    return measurements;
+  }
+
+  /**
+   * Reads one page of RowGroups.
+   *
+   * <p>Only the devices inside the page window are read, so a page's memory is bounded by the page
+   * itself instead of the file's device count.
+   *
+   * @param reader TsFile reader
+   * @param deviceIndex index of the same file version
+   * @param offset absolute index of the first RowGroup to return
+   * @param limit maximum number of RowGroups to return
+   * @return RowGroups in file order; empty when the offset is past the last RowGroup
+   * @throws IOException if reading fails
+   */
+  public List<RowGroupDTO> readRowGroupPage(
+      TsFileSequenceReader reader, DeviceIndex deviceIndex, int offset, int limit)
+      throws IOException {
+    int total = deviceIndex.deviceCount();
+    if (limit <= 0 || offset < 0 || offset >= total) {
+      return List.of();
+    }
+
+    int end = Math.min(total, offset + limit);
+    List<RowGroupDTO> page = new ArrayList<>(end - offset);
+    for (int index = offset; index < end; index++) {
+      page.add(toRowGroupDTO(readRowGroupInfo(reader, deviceIndex.devices().get(index), index)));
+    }
+    return page;
+  }
+
+  /**
+   * Reads one page of Chunks, stitching devices together when the page crosses a device boundary.
+   *
+   * <p>Starts at the device that owns {@code offset} and stops once the page is full, so only the
+   * devices the page touches are ever read.
+   *
+   * @param reader TsFile reader
+   * @param deviceIndex index of the same file version
+   * @param offset absolute index of the first chunk to return
+   * @param limit maximum number of chunks to return
+   * @return chunks in file order; empty when the offset is past the last chunk
+   * @throws IOException if reading fails
+   */
+  public List<ChunkDTO> readChunkPage(
+      TsFileSequenceReader reader, DeviceIndex deviceIndex, int offset, int limit)
+      throws IOException {
+    int total = deviceIndex.chunkCount();
+    if (limit <= 0 || offset < 0 || offset >= total) {
+      return List.of();
+    }
+
+    int end = Math.min(total, offset + limit);
+    List<ChunkDTO> page = new ArrayList<>(end - offset);
+
+    for (int position = deviceIndex.deviceIndexForChunk(offset);
+        position < deviceIndex.deviceCount() && page.size() < end - offset;
+        position++) {
+      int base = deviceIndex.chunksBeforeDevice(position);
+      List<ChunkInfo> deviceChunks = readChunkInfos(reader, deviceIndex.devices().get(position));
+
+      for (int i = 0; i < deviceChunks.size(); i++) {
+        int absolute = base + i;
+        if (absolute < offset) {
+          continue;
+        }
+        if (absolute >= end) {
+          break;
+        }
+        page.add(toChunkDTO(deviceChunks.get(i)));
+      }
+    }
+    return page;
+  }
+
+  /** Counters of one streaming pass; no chunk or timeseries metadata outlives the scan. */
+  private record ScanResult(
+      List<IDeviceID> devices,
+      int[] chunkCounts,
+      long startTime,
+      long endTime,
+      int measurementCount,
+      List<MeasurementInfo> measurements) {}
+
+  /**
+   * Streams the file one device at a time and accumulates the summary counters.
+   *
+   * @param reader TsFile reader
+   * @param schemas V4 table schemas, already read, used for TAG columns and encoding/compression
+   * @param includeMeasurements whether measurement schema details are needed
+   * @return counters of the file plus its device list and per-device chunk counts
+   * @throws IOException if reading fails
+   */
+  private ScanResult scan(
+      TsFileSequenceReader reader, List<TableSchema> schemas, boolean includeMeasurements)
+      throws IOException {
+    List<IDeviceID> devices = reader.getAllDevices();
+    int[] chunkCounts = new int[devices.size()];
+
+    Map<String, ColumnCategory> columnCategories = new HashMap<>();
+    Map<String, IMeasurementSchema> columnSchemas = new HashMap<>();
+    Map<String, MeasurementInfo> measurementMap = new LinkedHashMap<>();
+    Set<String> measurementNames = new HashSet<>();
+    if (includeMeasurements) {
+      collectSchemaColumns(schemas, columnCategories, columnSchemas, measurementMap);
+    }
+
+    long minStartTime = Long.MAX_VALUE;
+    long maxEndTime = Long.MIN_VALUE;
+
+    for (int devicePosition = 0; devicePosition < devices.size(); devicePosition++) {
+      List<TimeseriesMetadata> deviceMetadata =
+          reader.getDeviceTimeseriesMetadata(devices.get(devicePosition));
+      int deviceChunks = 0;
+
+      if (deviceMetadata != null) {
+        for (TimeseriesMetadata tsMetadata : deviceMetadata) {
+          Statistics<? extends Serializable> stats = tsMetadata.getStatistics();
+          if (stats != null) {
+            minStartTime = Math.min(minStartTime, stats.getStartTime());
+            maxEndTime = Math.max(maxEndTime, stats.getEndTime());
+          }
+
+          deviceChunks += countChunks(tsMetadata.getChunkMetadataList());
+
+          String measurementId = tsMetadata.getMeasurementId();
+          measurementNames.add(measurementId);
+          if (includeMeasurements && !measurementMap.containsKey(measurementId)) {
+            measurementMap.put(
+                measurementId,
+                toMeasurementInfo(reader, tsMetadata, columnCategories, columnSchemas));
+          }
+        }
+      }
+      chunkCounts[devicePosition] = deviceChunks;
+    }
+
+    if (minStartTime == Long.MAX_VALUE) {
+      minStartTime = 0;
+    }
+    if (maxEndTime == Long.MIN_VALUE) {
+      maxEndTime = 0;
+    }
+
+    return new ScanResult(
+        devices,
+        chunkCounts,
+        minStartTime,
+        maxEndTime,
+        measurementNames.size(),
+        includeMeasurements ? new ArrayList<>(measurementMap.values()) : List.of());
+  }
+
+  /**
+   * Counts the chunks that the paging endpoints address.
+   *
+   * <p>Aligned files wrap some entries in non-{@link ChunkMetadata} objects that the chunk listing
+   * skips; counting them here keeps the reported total equal to the number of addressable chunks.
+   *
+   * @param chunkMetadataList chunk metadata of one timeseries, may be null
+   * @return number of addressable chunks
+   */
+  private static int countChunks(List<IChunkMetadata> chunkMetadataList) {
+    if (chunkMetadataList == null) {
+      return 0;
+    }
+    int count = 0;
+    for (IChunkMetadata chunkMetadata : chunkMetadataList) {
+      if (chunkMetadata instanceof ChunkMetadata) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  private static int totalChunks(ScanResult scan) {
+    int total = 0;
+    for (int count : scan.chunkCounts()) {
+      total += count;
+    }
+    return total;
+  }
+
+  /**
+   * Reads the V4 table schemas, returning an empty list for tree model files.
+   *
+   * @param reader TsFile reader
+   * @return table schemas of the file
+   */
+  private List<TableSchema> readTableSchemas(TsFileSequenceReader reader) {
+    try {
+      Path path = Paths.get(reader.getFileName());
+      try (ITsFileReader v4Reader = new TsFileReaderBuilder().file(path.toFile()).build()) {
+        List<TableSchema> schemas = v4Reader.getAllTableSchema();
+        return schemas == null ? List.of() : schemas;
+      }
+    } catch (Exception e) {
+      logger.debug("Not a V4 table model file or failed to read TableSchema: {}", e.getMessage());
+      return List.of();
+    }
+  }
+
+  private void collectSchemaColumns(
+      List<TableSchema> schemas,
+      Map<String, ColumnCategory> columnCategories,
+      Map<String, IMeasurementSchema> columnSchemas,
+      Map<String, MeasurementInfo> measurementMap) {
+    for (TableSchema schema : schemas) {
+      List<IMeasurementSchema> schemaList = schema.getColumnSchemas();
+      List<ColumnCategory> categories = schema.getColumnTypes();
+      if (schemaList == null || categories == null) {
+        continue;
+      }
+      for (int i = 0; i < schemaList.size() && i < categories.size(); i++) {
+        IMeasurementSchema columnSchema = schemaList.get(i);
+        ColumnCategory category = categories.get(i);
+        if (category == null) {
+          continue;
+        }
+        String columnName = columnSchema.getMeasurementName();
+        columnCategories.put(columnName, category);
+        columnSchemas.put(columnName, columnSchema);
+
+        if (category == ColumnCategory.TAG) {
+          measurementMap.put(
+              columnName,
+              new MeasurementInfo(
+                  columnName,
+                  schemaDataType(columnSchema, "STRING"),
+                  schemaEncoding(columnSchema),
+                  schemaCompression(columnSchema),
+                  "TAG"));
+        }
+      }
+    }
+  }
+
+  private MeasurementInfo toMeasurementInfo(
+      TsFileSequenceReader reader,
+      TimeseriesMetadata tsMetadata,
+      Map<String, ColumnCategory> columnCategories,
+      Map<String, IMeasurementSchema> columnSchemas) {
+    String measurementId = tsMetadata.getMeasurementId();
+    String dataType = tsMetadata.getTsDataType().toString();
+    String encoding = "UNKNOWN";
+    String compression = "UNKNOWN";
+
+    IMeasurementSchema tableSchema = columnSchemas.get(measurementId);
+    if (tableSchema != null) {
+      if (tableSchema.getEncodingType() != null) {
+        encoding = tableSchema.getEncodingType().toString();
+      }
+      if (tableSchema.getCompressor() != null) {
+        compression = tableSchema.getCompressor().toString();
+      }
+    } else {
+      List<IChunkMetadata> chunkMetadataList = tsMetadata.getChunkMetadataList();
+      if (chunkMetadataList != null && !chunkMetadataList.isEmpty()) {
+        IChunkMetadata firstChunk = chunkMetadataList.get(0);
+        if (firstChunk instanceof ChunkMetadata chunkMeta) {
+          try {
+            org.apache.tsfile.read.common.Chunk chunk = reader.readMemChunk(chunkMeta);
+            if (chunk != null && chunk.getHeader() != null) {
+              org.apache.tsfile.file.header.ChunkHeader chunkHeader = chunk.getHeader();
+              if (chunkHeader.getEncodingType() != null) {
+                encoding = chunkHeader.getEncodingType().toString();
+              }
+              if (chunkHeader.getCompressionType() != null) {
+                compression = chunkHeader.getCompressionType().toString();
+              }
+            }
+          } catch (Exception e) {
+            logger.debug(
+                "Could not read ChunkHeader for measurement {}: {}", measurementId, e.getMessage());
+          }
+        }
+      }
+    }
+
+    ColumnCategory category = columnCategories.get(measurementId);
+    return new MeasurementInfo(
+        measurementId,
+        dataType,
+        encoding,
+        compression,
+        category != null ? category.toString() : "FIELD");
+  }
+
+  private List<TableInfo> toTableInfos(List<TableSchema> schemas) {
+    List<TableInfo> tableInfos = new ArrayList<>();
+    for (TableSchema schema : schemas) {
+      List<MeasurementInfo> tagColumns = new ArrayList<>();
+      List<MeasurementInfo> fieldColumns = new ArrayList<>();
+
+      List<IMeasurementSchema> columnSchemas = schema.getColumnSchemas();
+      List<ColumnCategory> categories = schema.getColumnTypes();
+      if (columnSchemas != null && categories != null) {
+        for (int i = 0; i < columnSchemas.size() && i < categories.size(); i++) {
+          IMeasurementSchema columnSchema = columnSchemas.get(i);
+          ColumnCategory category = categories.get(i);
+          MeasurementInfo columnInfo =
+              new MeasurementInfo(
+                  columnSchema.getMeasurementName(),
+                  schemaDataType(columnSchema, "UNKNOWN"),
+                  schemaEncoding(columnSchema),
+                  schemaCompression(columnSchema),
+                  category.toString());
+
+          if (category == ColumnCategory.TAG) {
+            tagColumns.add(columnInfo);
+          } else if (category == ColumnCategory.FIELD) {
+            fieldColumns.add(columnInfo);
+          }
+        }
+      }
+      tableInfos.add(new TableInfo(schema.getTableName(), tagColumns, fieldColumns));
+    }
+    return tableInfos;
+  }
+
+  private static String schemaDataType(IMeasurementSchema schema, String defaultValue) {
+    return schema.getType() != null ? schema.getType().toString() : defaultValue;
+  }
+
+  private static String schemaEncoding(IMeasurementSchema schema) {
+    return schema.getEncodingType() != null ? schema.getEncodingType().toString() : "PLAIN";
+  }
+
+  private static String schemaCompression(IMeasurementSchema schema) {
+    return schema.getCompressor() != null ? schema.getCompressor().toString() : "UNCOMPRESSED";
+  }
+
+  private static MeasurementDTO toMeasurementDTO(MeasurementInfo info) {
+    return MeasurementDTO.builder()
+        .name(info.getName())
+        .dataType(info.getDataType())
+        .encoding(info.getEncoding())
+        .compression(info.getCompression())
+        .columnCategory(info.getColumnCategory())
+        .build();
+  }
+
+  private static org.apache.tsfile.viewer.dto.TableDTO toTableDTO(TableInfo info) {
+    List<MeasurementDTO> tagDTOs =
+        info.getTagColumns().stream().map(TsFileParser::toMeasurementDTO).toList();
+    List<MeasurementDTO> fieldDTOs =
+        info.getFieldColumns().stream().map(TsFileParser::toMeasurementDTO).toList();
+    return org.apache.tsfile.viewer.dto.TableDTO.builder()
+        .tableName(info.getTableName())
+        .tagColumns(tagDTOs)
+        .fieldColumns(fieldDTOs)
+        .totalColumns(info.getTotalColumns())
+        .build();
+  }
+
+  private static RowGroupDTO toRowGroupDTO(RowGroupInfo info) {
+    return RowGroupDTO.builder()
+        .index(info.getIndex())
+        .device(info.getDevice())
+        .startTime(info.getStartTime())
+        .endTime(info.getEndTime())
+        .chunkCount(info.getChunkCount())
+        .build();
+  }
+
+  private static ChunkDTO toChunkDTO(ChunkInfo info) {
+    return ChunkDTO.builder()
+        .measurement(info.getMeasurement())
+        .offset(info.getOffset())
+        .size(info.getSize())
+        .compressionRatio(info.getCompressionRatio())
+        .device(info.getDevice())
+        .dataType(info.getDataType())
+        .encoding(info.getEncoding())
+        .compression(info.getCompression())
+        .startTime(info.getStartTime())
+        .endTime(info.getEndTime())
+        .numOfPoints(info.getNumOfPoints())
+        .minValue(info.getMinValue())
+        .maxValue(info.getMaxValue())
+        .build();
+  }
+
 
   // ============== DTO Conversion Methods ==============
 

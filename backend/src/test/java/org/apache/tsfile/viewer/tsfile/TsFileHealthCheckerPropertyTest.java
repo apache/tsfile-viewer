@@ -50,6 +50,7 @@ class TsFileHealthCheckerPropertyTest {
    *   <li>CHUNK_STATISTICS_MISMATCH → ERROR
    *   <li>TIMESERIES_METADATA_MISMATCH → ERROR
    *   <li>DATA_READ_ERROR → WARNING
+   *   <li>DATA_VALIDATION_SKIPPED → WARNING
    * </ul>
    */
   private static final Map<ScanErrorType, ErrorSeverity> EXPECTED_SEVERITY_MAP =
@@ -58,7 +59,8 @@ class TsFileHealthCheckerPropertyTest {
           ScanErrorType.STRUCTURE_CORRUPT, ErrorSeverity.ERROR,
           ScanErrorType.CHUNK_STATISTICS_MISMATCH, ErrorSeverity.ERROR,
           ScanErrorType.TIMESERIES_METADATA_MISMATCH, ErrorSeverity.ERROR,
-          ScanErrorType.DATA_READ_ERROR, ErrorSeverity.WARNING);
+          ScanErrorType.DATA_READ_ERROR, ErrorSeverity.WARNING,
+          ScanErrorType.DATA_VALIDATION_SKIPPED, ErrorSeverity.WARNING);
 
   // ---------------------------------------------------------------------------
   // Property 5: ScanResult 结构完整性与严重程度映射

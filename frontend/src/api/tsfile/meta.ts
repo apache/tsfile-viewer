@@ -17,9 +17,60 @@
  * under the License.
  */
 
-import type { TsFileMetadata } from "./types";
+import type {
+  Chunk,
+  DeviceRef,
+  DeviceMeasurements,
+  PagedResponse,
+  RowGroup,
+  TsFileMetadata,
+} from "./types";
 import { apiClient } from "../request";
 
+/**
+ * 元数据摘要。
+ *
+ * 注意：响应中的 rowGroups / chunks 恒为空数组（大文件的明细会撑爆后端内存），
+ * 行数看 rowGroupCount / chunkCount，明细走 getRowGroupsPage / getChunksPage。
+ */
 export function getMetadata(fileId: string) {
   return apiClient.get<unknown, TsFileMetadata>(`/meta/${fileId}`);
+}
+
+/** RowGroup 明细分页 */
+export function getRowGroupsPage(fileId: string, offset = 0, limit = 50) {
+  return apiClient.get<unknown, PagedResponse<RowGroup>>(`/meta/${fileId}/row-groups`, {
+    params: { offset, limit },
+  });
+}
+
+/** Chunk 明细分页 */
+export function getChunksPage(fileId: string, offset = 0, limit = 50) {
+  return apiClient.get<unknown, PagedResponse<Chunk>>(`/meta/${fileId}/chunks`, {
+    params: { offset, limit },
+  });
+}
+
+/**
+ * 单个设备的测点清单。
+ *
+ * 树模型的层级是「设备 → 测点」，因此测点下拉要跟随所选设备；设备不存在时返回空列表。
+ */
+export function getDeviceMeasurements(fileId: string, device: string) {
+  return apiClient.get<unknown, DeviceMeasurements>(
+    `/meta/${fileId}/devices/${encodeURIComponent(device)}/measurements`,
+  );
+}
+
+/**
+ * 设备分页（按表过滤 + 子串搜索）。
+ *
+ * 表模型的层级是「表 → 设备 → 字段」，设备下拉必须按所选表取。该端点由已缓存的设备索引
+ * 推导（设备名本身即 tableName.tag1.tag2），因此支持分页与搜索而不做全表行扫描。
+ */
+export function getDevicesPage(
+  fileId: string,
+  params: { tableName?: string; query?: string; offset?: number; limit?: number } = {},
+) {
+  return apiClient.get<unknown, PagedResponse<DeviceRef>>(`/meta/${fileId}/devices`, { params });
 }

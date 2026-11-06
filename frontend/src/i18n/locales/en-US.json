@@ -108,6 +108,7 @@
       "dataType": "Data Type",
       "encoding": "Encoding",
       "compression": "Compression",
+      "encodingCompression": "Enc./Comp.",
       "rowGroupIndex": "Index",
       "device": "Device",
       "chunkMeasurement": "Measurement",
@@ -304,7 +305,8 @@
         "STRUCTURE_CORRUPT": "Structure Corrupt",
         "CHUNK_STATISTICS_MISMATCH": "Chunk Stats Mismatch",
         "TIMESERIES_METADATA_MISMATCH": "Metadata Mismatch",
-        "DATA_READ_ERROR": "Data Read Error"
+        "DATA_READ_ERROR": "Data Read Error",
+        "DATA_VALIDATION_SKIPPED": "Data Validation Skipped"
       },
       "taskStatus": {
         "QUEUED": "Queued",

@@ -22,7 +22,7 @@
  * TreeFilterPanel - 树模型筛选面板
  * 所有下拉选择器使用 el-select-v2（虚拟化渲染），即使选项数量很大也不会卡顿。
  */
-import type { AdvancedCondition, TsFileMetadata } from "@/api/tsfile/types";
+import type { AdvancedCondition, Measurement, RowGroup, TsFileMetadata } from "@/api/tsfile/types";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
+import { readPagedRange } from "@/composables/usePagedList";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
 
 interface Props {
@@ -66,18 +67,65 @@ const selectedQuickRange = ref<string | null>(null);
 const showAdvancedDialog = ref(false);
 const advancedConditions = ref<AdvancedCondition[]>([]);
 
-const deviceOptions = computed(() => {
-  if (!metadata.value?.rowGroups) return [];
-  const devices = new Set<string>();
-  for (const rg of metadata.value.rowGroups) {
-    if (rg.device) devices.add(rg.device);
-  }
-  return [...devices].sort().map((d) => ({ label: d, value: d }));
-});
+// 设备选项
+//
+// 元数据摘要里的 rowGroups 恒为空数组（明细改成分页接口），所以设备名只能来自
+// 分页 RowGroup 数据本身。这里不做全量拉取：最多扫 DEVICE_SCAN_MAX_PAGES 页，
+// deviceScan 记录实际扫了多少行，选项不完整时由模板如实标出。
+// PAGE_SIZE 取后端 PageDTO.MAX_LIMIT（200），再大也会被服务端收窄。
+const DEVICE_SCAN_PAGE_SIZE = 200;
+const DEVICE_SCAN_MAX_PAGES = 4;
 
+const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const deviceLoading = ref(false);
+const deviceScan = ref({ loaded: 0, total: 0 });
+
+async function loadDeviceOptions() {
+  deviceLoading.value = true;
+  try {
+    const { items, total } = await readPagedRange<RowGroup>(
+      (offset, limit) => metaApi.getRowGroupsPage(props.fileId, offset, limit),
+      { pageSize: DEVICE_SCAN_PAGE_SIZE, maxPages: DEVICE_SCAN_MAX_PAGES },
+    );
+    const devices = new Set<string>();
+    for (const rowGroup of items) {
+      if (rowGroup.device) devices.add(rowGroup.device);
+    }
+    deviceOptions.value = [...devices].sort().map((d) => ({ label: d, value: d }));
+    deviceScan.value = { loaded: items.length, total };
+  } catch {
+    // 设备选项拉取失败不应拖垮面板本身：测点 / 时间范围筛选仍然可用
+    deviceOptions.value = [];
+    deviceScan.value = { loaded: 0, total: 0 };
+  } finally {
+    deviceLoading.value = false;
+  }
+}
+
+// 所选设备的测点；null 表示还没取到（此时退回文件级并集，保证面板仍可用）
+const deviceMeasurements = ref<Measurement[] | null>(null);
+const deviceMeasurementsLoading = ref(false);
+
+async function loadDeviceMeasurements(device: string) {
+  deviceMeasurements.value = null;
+  if (!device || !props.fileId) return;
+  deviceMeasurementsLoading.value = true;
+  try {
+    const response = await metaApi.getDeviceMeasurements(props.fileId, device);
+    deviceMeasurements.value = response.measurements ?? [];
+  } catch {
+    // 级联信息取不到时退回文件级列表，不阻塞测点/时间范围筛选
+    deviceMeasurements.value = null;
+  } finally {
+    deviceMeasurementsLoading.value = false;
+  }
+}
+
+// 树模型的层级是「设备 → 测点」：测点选项取自所选设备，拿不到时才退回文件级并集
 const measurementOptions = computed(() => {
-  if (!metadata.value?.measurements) return [];
-  return metadata.value.measurements
+  const source = deviceMeasurements.value ?? metadata.value?.measurements;
+  if (!source) return [];
+  return source
     .map((m) => m.name)
     .filter(Boolean)
     .sort() as string[];
@@ -90,7 +138,8 @@ const CHART_DEFAULT_SERIES = 8;
 
 // 取前 N 个数值测点，作为图表默认序列
 function defaultChartMeasurements(): string[] {
-  return (metadata.value?.measurements || [])
+  const source = deviceMeasurements.value ?? metadata.value?.measurements ?? [];
+  return source
     .filter((m) => m.name && numericTypes.has(m.dataType?.toUpperCase() || ''))
     .map((m) => m.name)
     .slice(0, CHART_DEFAULT_SERIES);
@@ -127,8 +176,12 @@ async function loadMetadata() {
   try {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;
+    // chart 模式的首次查询要带默认设备，因此这里必须等设备选项就位
+    await loadDeviceOptions();
     if (deviceOptions.value.length > 0) {
       selectedDevice.value = deviceOptions.value[0]!.value;
+      // 测点选项跟随设备，默认序列也必须基于该设备的测点
+      await loadDeviceMeasurements(selectedDevice.value);
     }
     // In chart mode, default to the first few numeric fields and trigger query
     if (props.chartMode && metadata.value?.measurements) {
@@ -192,12 +245,15 @@ watch(
   },
   { immediate: true },
 );
-watch(
-  () => selectedDevice.value,
-  () => {
-    selectedMeasurements.value = [];
-  },
-);
+// 切换设备时清空已选测点，但只在**用户主动切换**时发生。
+// 不能用 watch(selectedDevice)：loadMetadata / resetFilters 都会把 selectedDevice
+// 程序化地设成第一个设备，watcher 又是异步 flush，回调落在 chart 模式默认测点已经
+// 写入之后，会把它们清掉（表现为图表有数据、测点框却是空的）。
+// el-select-v2 的 change 只在用户选值/清空时发出，程序化赋值不会触发。
+function handleDeviceChange() {
+  selectedMeasurements.value = [];
+  void loadDeviceMeasurements(selectedDevice.value);
+}
 watch(timeRange, () => {
   selectedQuickRange.value = null;
 });
@@ -224,10 +280,19 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             :options="deviceOptions"
             filterable
             :placeholder="t('tsfile.metadata.searchByDevice')"
-            :loading="loading"
+            :loading="loading || deviceLoading || deviceMeasurementsLoading"
             style="width: 240px"
             popper-class="v2-options-compact"
+            @change="handleDeviceChange"
           />
+          <!-- 设备名只能从分页 RowGroup 里扫到，扫描不完整时标出实际范围 -->
+          <span
+            v-if="deviceScan.total > deviceScan.loaded"
+            class="whitespace-nowrap text-xs text-text-body tnum"
+            :title="t('tsfile.metadata.searchByDevice')"
+          >
+            ({{ deviceScan.loaded }} / {{ deviceScan.total }})
+          </span>
         </div>
         <div class="flex items-center gap-2">
           <span class="whitespace-nowrap text-sm text-text-body">{{ t("tsfile.data.measurements") }}:</span>

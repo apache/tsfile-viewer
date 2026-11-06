@@ -131,7 +131,9 @@ public class DataService {
               filters.getTimeRange() != null ? filters.getTimeRange().getStartTime() : null,
               filters.getTimeRange() != null ? filters.getTimeRange().getEndTime() : null,
               readLimit,
-              0);
+              0,
+              filters.getDevices(),
+              filters.getMeasurements());
 
       // Check timeout
       checkTimeout(startTime, timeoutSeconds);
@@ -206,7 +208,9 @@ public class DataService {
               request.getStartTime(),
               request.getEndTime(),
               tsFileProperties.getQuery().getMaxResultSize(),
-              0);
+              0,
+              request.getDevices(),
+              request.getMeasurements());
 
       // Check timeout
       checkTimeout(startTime, timeoutSeconds);

@@ -26,6 +26,7 @@ import { metaApi } from "@/api/tsfile";
 import MetaCards from "@/components/tsfile/MetaCards.vue";
 import MeasurementsTable from "@/components/tsfile/MeasurementsTable.vue";
 import RowGroupsTable from "@/components/tsfile/RowGroupsTable.vue";
+import ChunksTable from "@/components/tsfile/ChunksTable.vue";
 import TablesTable from "@/components/tsfile/TablesTable.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
@@ -68,6 +69,7 @@ const tabItems = computed(() => {
     items.push({ key: 'tables', label: t('tsfile.metadata.tables') });
   }
   items.push({ key: 'rowGroups', label: t('tsfile.metadata.rowGroups') });
+  items.push({ key: 'chunks', label: t('tsfile.metadata.chunks') });
   items.push({
     key: 'measurements',
     label: isTableModel.value ? 'Field' : t('tsfile.metadata.measurements'),
@@ -125,10 +127,14 @@ const tabContentRef = ref<HTMLElement | null>(null);
 const tabContentHeight = ref(400);
 
 // 兜底像素值，仅在表格 DOM 还没渲染出来时使用。
-// 现在三个表格都是 tc-panel + el-table：面板标题栏 ~48px + 面板内边距 16px
-// + el-table(size=small) 表头 ~34px ≈ 100px，留一点余量取 108。
-// 迁移前是 Card+Table 的 144px，这里已按新 DOM 重新标定。
+// 明细表格现在有两种形态：
+//   - el-table（TablesTable / MeasurementsTable）：面板标题栏 ~48px + 面板内边距 16px
+//     + el-table(size=small) 表头 ~34px ≈ 100px，留一点余量取 108；
+//   - el-table-v2（RowGroupsTable / ChunksTable）：同样的标题栏与内边距 + 表头 ~32px，
+//     加上底部状态条 26px ≈ 128。
+// 实测可用时以实测为准，这里只是兜底。
 const FALLBACK_CHROME_HEIGHT = 108;
+const FALLBACK_CHROME_HEIGHT_V2 = 128;
 
 // 实测值的上限。TablesTable 的表格嵌在 el-collapse 里，层层标题会让
 // "表体距容器顶部的距离"远大于真实 chrome，若照实减掉表格只剩一两行高。
@@ -137,27 +143,30 @@ const MAX_TRUSTED_CHROME_HEIGHT = 180;
 
 let resizeObserver: ResizeObserver | null = null;
 
+/**
+ * 实测“标题栏 + 表头”等 chrome 的高度：滚动区域顶部相对容器顶部的偏移。
+ * 两种表格形态各有一套 DOM，兜底值也不同，因此按命中的形态选择兜底。
+ */
+function measureChromeHeight(container: HTMLElement): number {
+  const legacyBody = container.querySelector<HTMLElement>(".el-table__body-wrapper");
+  const virtualBody = container.querySelector<HTMLElement>(".el-table-v2__body");
+  const scrollBody = legacyBody ?? virtualBody;
+  const fallback = virtualBody ? FALLBACK_CHROME_HEIGHT_V2 : FALLBACK_CHROME_HEIGHT;
+  if (!scrollBody) return fallback;
+  const measured = Math.max(
+    0,
+    scrollBody.getBoundingClientRect().top - container.getBoundingClientRect().top,
+  );
+  // 超过上限说明实测不可信（例如表格嵌在 el-collapse 里），回退到兜底值
+  return measured > MAX_TRUSTED_CHROME_HEIGHT ? fallback : measured;
+}
+
 onMounted(() => {
   if (tabContentRef.value) {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const container = entry.target as HTMLElement;
-        // 优先实测：找到当前渲染的表格滚动区域顶部相对容器顶部的偏移，
-        // 即"标题栏 + 表头"等 chrome 的真实高度。实测优先意味着上方增删
-        // 元素时不需要再改常量。
-        const scrollBody = container.querySelector<HTMLElement>(
-          ".el-table__body-wrapper",
-        );
-        const measured = scrollBody
-          ? Math.max(
-              0,
-              scrollBody.getBoundingClientRect().top -
-                container.getBoundingClientRect().top,
-            )
-          : FALLBACK_CHROME_HEIGHT;
-        const chromeHeight =
-          measured > MAX_TRUSTED_CHROME_HEIGHT ? FALLBACK_CHROME_HEIGHT : measured;
-        const available = entry.contentRect.height - chromeHeight;
+        const available = entry.contentRect.height - measureChromeHeight(container);
         tabContentHeight.value = Math.max(200, available);
       }
     });
@@ -209,7 +218,8 @@ onBeforeUnmount(() => {
       <div ref="tabContentRef" class="flex-1 min-h-0 overflow-hidden border border-solid border-border-default border-t-0 rounded-b-lg bg-bg-card">
         <TablesTable v-if="activeTab === 'tables' && isTableModel" :tables="metadata?.tables || []" :loading="loading" :scroll-y="tabContentHeight" />
         <MeasurementsTable v-if="activeTab === 'measurements'" :measurements="metadata?.measurements || []" :loading="loading" :scroll-y="tabContentHeight" />
-        <RowGroupsTable v-if="activeTab === 'rowGroups'" :row-groups="metadata?.rowGroups || []" :loading="loading" :scroll-y="tabContentHeight" />
+        <RowGroupsTable v-if="activeTab === 'rowGroups'" :file-id="fileId" :scroll-y="tabContentHeight" />
+        <ChunksTable v-if="activeTab === 'chunks'" :file-id="fileId" :scroll-y="tabContentHeight" />
       </div>
     </template>
   </div>
