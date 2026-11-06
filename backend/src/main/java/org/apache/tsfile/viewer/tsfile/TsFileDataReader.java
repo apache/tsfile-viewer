@@ -228,7 +228,7 @@ public class TsFileDataReader {
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
       List<TableSchema> schemas = new ArrayList<>();
-      for (TableSchema ts : reader.getAllTableSchema()) {
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
         schemas.add(ts);
       }
 
@@ -349,7 +349,7 @@ public class TsFileDataReader {
     int skipped = 0, collected = 0;
     boolean hasMore = false;
 
-    for (TableSchema ts : reader.getAllTableSchema()) {
+    for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
       if (collected >= limit) {
         hasMore = true;
         break;
@@ -450,7 +450,7 @@ public class TsFileDataReader {
     boolean hasMore = false;
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
-      for (TableSchema ts : reader.getAllTableSchema()) {
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
         if (collected >= limit) {
           hasMore = true;
           break;
@@ -571,7 +571,7 @@ public class TsFileDataReader {
     int processed = 0;
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
-      for (TableSchema ts : reader.getAllTableSchema()) {
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
         String tblName = ts.getTableName();
         if (fTbls != null && !fTbls.isEmpty() && !fTbls.contains(tblName)) continue;
         List<IMeasurementSchema> cols = ts.getColumnSchemas();
@@ -661,7 +661,7 @@ public class TsFileDataReader {
     List<String> colTypes = new ArrayList<>();
 
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
-      for (TableSchema ts : reader.getAllTableSchema()) {
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
         String tblName = ts.getTableName();
         List<IMeasurementSchema> cols = ts.getColumnSchemas();
         List<ColumnCategory> categories = ts.getColumnTypes();
@@ -737,7 +737,7 @@ public class TsFileDataReader {
   public List<String> getTableNames(File filePath) throws IOException {
     List<String> names = new ArrayList<>();
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
-      for (TableSchema ts : reader.getAllTableSchema()) names.add(ts.getTableName());
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) names.add(ts.getTableName());
     }
     return names;
   }
@@ -766,7 +766,7 @@ public class TsFileDataReader {
     long effEnd = endTime != null ? endTime : Long.MAX_VALUE;
     long total = 0;
     try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
-      for (TableSchema ts : reader.getAllTableSchema()) {
+      for (TableSchema ts : TableSchemaSupport.readAll(reader)) {
         List<String> qCols = new ArrayList<>();
         for (IMeasurementSchema c : ts.getColumnSchemas()) qCols.add(c.getMeasurementName());
         if (qCols.isEmpty()) continue;
