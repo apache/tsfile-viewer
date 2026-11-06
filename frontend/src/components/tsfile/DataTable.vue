@@ -45,11 +45,14 @@ interface Props {
   loading: boolean;
   error: string | null;
   tagColumns?: string[];
+  /** 导出进行中：取全量数据期间禁用导出按钮 */
+  exporting?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   limit: 100,
   tagColumns: () => [],
+  exporting: false,
 });
 
 const emit = defineEmits<{
@@ -284,11 +287,11 @@ function formatValue(value: unknown): number | string {
     <div class="tc-panel-title">
       <span>{{ t("tsfile.data.title") }}</span>
       <div class="flex gap-2">
-        <el-button size="small" @click="emit('export', 'csv')">
+        <el-button size="small" :disabled="exporting" :loading="exporting" @click="emit('export', 'csv')">
           <Download class="mr-1 h-3.5 w-3.5" :stroke-width="1.75" />
           {{ t("tsfile.data.exportCsv") }}
         </el-button>
-        <el-button size="small" @click="emit('export', 'json')">
+        <el-button size="small" :disabled="exporting" :loading="exporting" @click="emit('export', 'json')">
           <Download class="mr-1 h-3.5 w-3.5" :stroke-width="1.75" />
           {{ t("tsfile.data.exportJson") }}
         </el-button>

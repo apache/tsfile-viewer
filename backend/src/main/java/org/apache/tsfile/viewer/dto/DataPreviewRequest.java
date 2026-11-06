@@ -40,6 +40,7 @@ public class DataPreviewRequest {
   private List<String> devices;
   private List<String> measurements;
   private ValueRange valueRange;
+  private List<AdvancedCondition> advancedConditions;
 
   @Min(value = 1, message = "limit must be at least 1")
   @Max(value = 1000, message = "limit must not exceed 1000")
@@ -99,6 +100,14 @@ public class DataPreviewRequest {
     this.valueRange = valueRange;
   }
 
+  public List<AdvancedCondition> getAdvancedConditions() {
+    return advancedConditions;
+  }
+
+  public void setAdvancedConditions(List<AdvancedCondition> advancedConditions) {
+    this.advancedConditions = advancedConditions;
+  }
+
   public int getLimit() {
     return limit;
   }
@@ -139,6 +148,10 @@ public class DataPreviewRequest {
 
     if (valueRange != null) {
       builder.valueRange(valueRange);
+    }
+
+    if (advancedConditions != null && !advancedConditions.isEmpty()) {
+      builder.advancedConditions(advancedConditions);
     }
 
     return builder.build();
