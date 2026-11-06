@@ -221,12 +221,14 @@ watch(
   },
   { immediate: true },
 );
-watch(
-  () => selectedDevice.value,
-  () => {
-    selectedMeasurements.value = [];
-  },
-);
+// 切换设备时清空已选测点，但只在**用户主动切换**时发生。
+// 不能用 watch(selectedDevice)：loadMetadata / resetFilters 都会把 selectedDevice
+// 程序化地设成第一个设备，watcher 又是异步 flush，回调落在 chart 模式默认测点已经
+// 写入之后，会把它们清掉（表现为图表有数据、测点框却是空的）。
+// el-select-v2 的 change 只在用户选值/清空时发出，程序化赋值不会触发。
+function handleDeviceChange() {
+  selectedMeasurements.value = [];
+}
 watch(timeRange, () => {
   selectedQuickRange.value = null;
 });
@@ -256,6 +258,7 @@ function handleAdvancedApply(conditions: AdvancedCondition[]) {
             :loading="loading || deviceLoading"
             style="width: 240px"
             popper-class="v2-options-compact"
+            @change="handleDeviceChange"
           />
           <!-- 设备名只能从分页 RowGroup 里扫到，扫描不完整时标出实际范围 -->
           <span

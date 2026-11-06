@@ -118,6 +118,7 @@ export const useScanStore = defineStore("tsfile-scan", () => {
         { name: "CHUNK_STATISTICS_MISMATCH", value: dist.CHUNK_STATISTICS_MISMATCH ?? 0 },
         { name: "TIMESERIES_METADATA_MISMATCH", value: dist.TIMESERIES_METADATA_MISMATCH ?? 0 },
         { name: "DATA_READ_ERROR", value: dist.DATA_READ_ERROR ?? 0 },
+        { name: "DATA_VALIDATION_SKIPPED", value: dist.DATA_VALIDATION_SKIPPED ?? 0 },
       ];
     }
     const counts: Record<ScanErrorType, number> = {
@@ -126,6 +127,7 @@ export const useScanStore = defineStore("tsfile-scan", () => {
       CHUNK_STATISTICS_MISMATCH: 0,
       TIMESERIES_METADATA_MISMATCH: 0,
       DATA_READ_ERROR: 0,
+      DATA_VALIDATION_SKIPPED: 0,
     };
     for (const result of scanResults.value) {
       const seen = new Set<ScanErrorType>();
@@ -144,6 +146,7 @@ export const useScanStore = defineStore("tsfile-scan", () => {
         value: counts.TIMESERIES_METADATA_MISMATCH,
       },
       { name: "DATA_READ_ERROR", value: counts.DATA_READ_ERROR },
+      { name: "DATA_VALIDATION_SKIPPED", value: counts.DATA_VALIDATION_SKIPPED },
     ];
   });
 

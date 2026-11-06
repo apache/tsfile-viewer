@@ -95,9 +95,15 @@ function formatTimeRange(startTime?: number, endTime?: number): string {
 }
 
 // 列宽不足时 el-table-v2 会把单元格截断成省略号，title 保证完整值仍可读
-function renderText(value: number | string | undefined): VNode {
+function renderText(value: number | string | undefined, extraClass = "truncate"): VNode {
   const text = value === undefined || value === "" ? "-" : String(value);
-  return h("span", { class: "max-w-full truncate", title: text }, text);
+  return h("span", { class: `max-w-full ${extraClass} tnum`, title: text }, text);
+}
+
+// 数值列统一用小一号的等宽数字：同样的像素宽度能多放 2~3 位，
+// 这样 13 位的时间戳（VECTOR 的 min/max）与 9 位的偏移量不必再截断。
+function renderNumber(value: number | string | undefined): VNode {
+  return renderText(value, "truncate text-xs");
 }
 
 // key 用已加载序列里的绝对下标：Chunk 没有天然唯一字段，不能当 row-key
@@ -146,9 +152,9 @@ const columns = computed<Column<ChunkRow>[]>(() => [
     key: "measurement",
     dataKey: "measurement",
     title: t("tsfile.metadata.chunkMeasurement"),
-    width: 180,
+    width: 160,
     flexGrow: 1,
-    minWidth: 160,
+    minWidth: 150,
     cellRenderer: ({ cellData }) =>
       h("span", { class: "block truncate", title: String(cellData ?? "") }, String(cellData || "-")),
   },
@@ -156,17 +162,17 @@ const columns = computed<Column<ChunkRow>[]>(() => [
     key: "device",
     dataKey: "device",
     title: t("tsfile.metadata.device"),
-    width: 120,
+    width: 99,
     cellRenderer: ({ cellData }) =>
       h("span", { class: "block truncate", title: String(cellData ?? "") }, String(cellData || "-")),
   },
   {
     key: "timeRange",
     title: t("tsfile.metadata.chunkTimeRange"),
-    // 12 列挤在 1194px 容器里时 el-table-v2 会按声明宽度等比压缩，
-    // 声明宽度给足（380）才能拿到最大份额；压缩后仍单行省略，
-    // 绝不换行——换行会被 32px 行高裁掉，看起来像压到下一行。
-    width: 380,
+    // 12 列降成 11 列后，时间范围拿到的宽度仍然不足以单行放下两个完整时间戳
+    // （需要 ~300px），这里保持单行省略 + title，绝不换行：换行会被 32px
+    // 行高裁掉，看起来像压到了下一行。
+    width: 180,
     cellRenderer: ({ rowData }) => {
       const text = formatTimeRange(rowData.startTime, rowData.endTime);
       return h("span", { class: "max-w-full truncate font-mono text-xs", title: text }, text);
@@ -175,60 +181,62 @@ const columns = computed<Column<ChunkRow>[]>(() => [
   {
     key: "numOfPoints",
     title: t("tsfile.metadata.numOfPoints"),
-    width: 110,
-    // 声明宽度给到 110，压缩后表头「数据点数」仍能排在一行
+    width: 75,
     align: "center",
     cellRenderer: ({ rowData }) =>
-      h("span", Number.isNaN(rowData.numOfPoints) ? "-" : String(rowData.numOfPoints)),
+      h(
+        "span",
+        { class: "text-xs tnum" },
+        Number.isNaN(rowData.numOfPoints) ? "-" : String(rowData.numOfPoints),
+      ),
   },
   {
     key: "offset",
     title: t("tsfile.metadata.offset"),
-    width: 110,
-    cellRenderer: ({ rowData }) => renderText(rowData.offset),
+    width: 89,
+    cellRenderer: ({ rowData }) => renderNumber(rowData.offset),
   },
   {
     key: "size",
     title: t("tsfile.metadata.size"),
-    width: 80,
-    cellRenderer: ({ rowData }) => renderText(rowData.size),
+    width: 48,
+    cellRenderer: ({ rowData }) => renderNumber(rowData.size),
   },
   {
     key: "compressionRatio",
     title: t("tsfile.metadata.compressionRatio"),
-    width: 100,
+    width: 79,
     align: "center",
-    cellRenderer: ({ rowData }) => h("span", formatRatio(rowData.compressionRatio)),
+    cellRenderer: ({ rowData }) => h("span", { class: "text-xs tnum" }, formatRatio(rowData.compressionRatio)),
   },
   {
     key: "dataType",
     title: t("tsfile.metadata.dataType"),
-    width: 100,
+    width: 88,
     cellRenderer: ({ rowData }) => renderText(rowData.dataType),
   },
   {
-    key: "encoding",
-    title: t("tsfile.metadata.encoding"),
-    width: 110,
-    cellRenderer: ({ rowData }) => renderText(rowData.encoding),
-  },
-  {
-    key: "compression",
-    title: t("tsfile.metadata.compression"),
-    width: 105,
-    cellRenderer: ({ rowData }) => renderText(rowData.compression),
+    // 编码与压缩总是成对读取（同一个 Chunk 的序列化方式），合并成一列
+    // 腾出的宽度正好还给被挤成「223384…」的偏移量/最小值/最大值。
+    key: "encodingCompression",
+    title: t("tsfile.metadata.encodingCompression"),
+    width: 129,
+    cellRenderer: ({ rowData }) => {
+      const text = `${rowData.encoding || "-"} / ${rowData.compression || "-"}`;
+      return h("span", { class: "max-w-full truncate", title: text }, text);
+    },
   },
   {
     key: "minValue",
     title: t("tsfile.data.minValue"),
-    width: 110,
-    cellRenderer: ({ rowData }) => renderText(rowData.minValue),
+    width: 123,
+    cellRenderer: ({ rowData }) => renderNumber(rowData.minValue),
   },
   {
     key: "maxValue",
     title: t("tsfile.data.maxValue"),
-    width: 110,
-    cellRenderer: ({ rowData }) => renderText(rowData.maxValue),
+    width: 123,
+    cellRenderer: ({ rowData }) => renderNumber(rowData.maxValue),
   },
 ]);
 
