@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -217,6 +218,35 @@ public class TsFileDataReader {
   /** Reads data from a TsFile with time range filtering and pagination. */
   public DataReadResult readDataByTimeRange(
       File filePath, Long startTime, Long endTime, int limit, int offset) throws IOException {
+    return readDataByTimeRange(filePath, startTime, endTime, limit, offset, null, null);
+  }
+
+  /**
+   * Reads data from a TsFile, optionally restricted to the given devices and measurements.
+   *
+   * <p>The restriction is pushed down into the tree model read path. Without it a tree model file
+   * is read device by device in storage order, so the row limit is exhausted by the first device and
+   * a later device (or its measurements) can never be matched by the post-read filters.
+   *
+   * @param filePath file to read
+   * @param startTime inclusive lower time bound, or null
+   * @param endTime inclusive upper time bound, or null
+   * @param limit maximum number of rows to return
+   * @param offset number of rows to skip
+   * @param devices device names to restrict to, or null for all devices
+   * @param measurements measurement names to restrict to, or null for all measurements
+   * @return rows read, plus column metadata and warnings
+   * @throws IOException if the file cannot be read
+   */
+  public DataReadResult readDataByTimeRange(
+      File filePath,
+      Long startTime,
+      Long endTime,
+      int limit,
+      int offset,
+      List<String> devices,
+      List<String> measurements)
+      throws IOException {
     long effStart = startTime != null ? startTime : Long.MIN_VALUE;
     long effEnd = endTime != null ? endTime : Long.MAX_VALUE;
     List<DataRow> results = new ArrayList<>();
@@ -234,7 +264,7 @@ public class TsFileDataReader {
 
       // If no TableSchema found, this is a tree model file - use TsFileSequenceReader
       if (schemas.isEmpty()) {
-        return readTreeModelData(filePath, effStart, effEnd, limit, offset);
+        return readTreeModelData(filePath, effStart, effEnd, limit, offset, devices, measurements);
       }
 
       for (TableSchema ts : schemas) {
@@ -793,20 +823,33 @@ public class TsFileDataReader {
    * to read device/measurement structure and data.
    */
   private DataReadResult readTreeModelData(
-      File filePath, long effStart, long effEnd, int limit, int offset) throws IOException {
+      File filePath,
+      long effStart,
+      long effEnd,
+      int limit,
+      int offset,
+      List<String> selectedDevices,
+      List<String> selectedMeasurements)
+      throws IOException {
     List<DataRow> results = new ArrayList<>();
     List<String> colNames = new ArrayList<>();
     List<String> colTypes = new ArrayList<>();
     int skipped = 0, collected = 0;
     boolean hasMore = false;
+    List<String> deviceFilter = selectedDevices != null ? selectedDevices : List.of();
+    List<String> measurementFilter =
+        selectedMeasurements != null ? selectedMeasurements : List.of();
 
     try (TsFileSequenceReader seqReader = new TsFileSequenceReader(filePath.getAbsolutePath());
         TsFileReader tsFileReader = new TsFileReader(seqReader)) {
 
-      // Get all devices and their measurements
-      Map<IDeviceID, Map<String, TSDataType>> deviceMeasurements = new HashMap<>();
+      // Get all devices and their measurements, keeping storage order so paging is stable
+      Map<IDeviceID, Map<String, TSDataType>> deviceMeasurements = new LinkedHashMap<>();
 
       for (IDeviceID device : seqReader.getAllDevices()) {
+        if (!deviceFilter.isEmpty() && !deviceFilter.contains(device.toString())) {
+          continue;
+        }
         Map<String, List<ChunkMetadata>> seriesMetaData =
             seqReader.readChunkMetadataInDevice(device);
         Map<String, TSDataType> measurements = new HashMap<>();
@@ -820,7 +863,12 @@ public class TsFileDataReader {
             }
           }
         }
-        deviceMeasurements.put(device, measurements);
+        if (!measurementFilter.isEmpty()) {
+          measurements.keySet().retainAll(measurementFilter);
+        }
+        if (!measurements.isEmpty()) {
+          deviceMeasurements.put(device, measurements);
+        }
       }
 
       // Build column names from all unique measurements

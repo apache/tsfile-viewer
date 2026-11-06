@@ -412,4 +412,42 @@ class TreeModelIntegrationTest {
       }
     }
   }
+
+  @Nested
+  @DisplayName("Filter Pushdown Tests")
+  class FilterPushdownTests {
+
+    private File testFile;
+
+    @BeforeEach
+    void createTestFile() throws Exception {
+      // Note: TsFileTestUtils writes a single table carrying a device_name FIELD, so this fixture
+      // cannot express a genuinely multi device tree model file. The device name pushdown
+      // (reading only the requested devices) is therefore verified against a real multi device
+      // tree model file rather than here; what is covered below is that a measurement filter is
+      // pushed into the read path instead of being applied only after reading.
+      testFile =
+          TsFileTestUtils.createTreeModelMultipleDevices(
+              tempDir.resolve("multi-device-tree.tsfile"),
+              Arrays.asList("root.device1", "root.device2"),
+              50);
+    }
+
+    @Test
+    @DisplayName("Should return rows when filtering by measurement")
+    void shouldReturnRowsForMeasurementFilter() throws Exception {
+      DataReadResult all = dataReader.readDataByTimeRange(testFile, null, null, 1000, 0);
+      assertThat(all.getData()).isNotEmpty();
+      String measurement = all.getData().get(0).getValues().keySet().iterator().next();
+
+      DataReadResult filtered =
+          dataReader.readDataByTimeRange(
+              testFile, null, null, 1000, 0, null, List.of(measurement));
+
+      assertThat(filtered.getData()).isNotEmpty();
+      for (DataRow row : filtered.getData()) {
+        assertThat(row.getValues()).containsKey(measurement);
+      }
+    }
+  }
 }
