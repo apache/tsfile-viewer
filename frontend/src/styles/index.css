@@ -404,3 +404,21 @@ html.dark {
     font-feature-settings: "tnum";
   }
 }
+
+/*
+ * el-select-v2 的下拉里有两层可滚容器：
+ *   外层 .el-select-dropdown__wrap  overflow:auto + max-height:274px
+ *   内层 .el-vl__window（虚拟列表）
+ * 当虚拟列表高度超过外层上限（下拉向上弹出、可用高度被压缩时最常见），两层会同时
+ * 出现滚动条。这里固定成"只有内层滚"，并阻止滚到底后把滚动穿透给页面。
+ */
+.v2-options-compact .el-select-dropdown__wrap {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.v2-options-compact .el-vl__window {
+  overflow-y: auto;
+  max-height: 274px;
+  overscroll-behavior: contain;
+}
