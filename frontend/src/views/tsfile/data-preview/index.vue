@@ -19,6 +19,7 @@
 
 <script setup lang="ts">
 import type { DataPreviewRequest, DataRow, TsFileMetadata } from "@/api/tsfile/types";
+import type { DataExportRequest } from "@/api/tsfile/data";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -28,7 +29,6 @@ import TableFilterPanel from "@/components/tsfile/TableFilterPanel.vue";
 import TreeFilterPanel from "@/components/tsfile/TreeFilterPanel.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
-import { normalizeToMs } from "@/utils/timestamp";
 import { decodeFileId } from "@/utils/fileId";
 
 const route = useRoute();
@@ -145,31 +145,33 @@ function handleLimitChange(newLimit: number) {
   currentOffset.value = 0;
   loadData({ ...currentFilters.value, limit: newLimit, offset: 0 });
 }
-function handleExport(format: "csv" | "json") {
-  if (format === "csv") exportCSV();
-  else exportJSON();
-}
-function exportCSV() {
-  const columns = new Set<string>();
-  for (const row of dataRows.value) {
-    for (const key of Object.keys(row.measurements)) columns.add(key);
+const exporting = ref(false);
+
+/**
+ * 导出当前筛选条件下的全部记录。
+ *
+ * 走后端流式导出接口：服务端按页读取并写出，因此不会只导出当前预览页，也不会被预览接口的
+ * max-result-size（默认 10000）静默截断，更不需要把整份数据读进浏览器内存。
+ */
+async function handleExport(format: "csv" | "json") {
+  if (exporting.value) return;
+  exporting.value = true;
+  error.value = null;
+  try {
+    const request: DataExportRequest = {
+      fileId: fileId.value,
+      ...(currentFilters.value as Partial<DataExportRequest>),
+    };
+    const blob = await dataApi.exportData(request, format);
+    downloadFile(blob, `data.${format}`);
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t("tsfile.common.error");
+  } finally {
+    exporting.value = false;
   }
-  const measurementCols = [...columns].sort();
-  const headers = ["Timestamp", "Device", ...measurementCols];
-  const rows = dataRows.value.map((row) =>
-    [
-      new Date(normalizeToMs(row.timestamp)).toISOString(),
-      row.device,
-      ...measurementCols.map((col) => row.measurements[col] ?? ""),
-    ].join(","),
-  );
-  downloadFile([headers.join(","), ...rows].join("\n"), "data.csv", "text/csv");
 }
-function exportJSON() {
-  downloadFile(JSON.stringify(dataRows.value, null, 2), "data.json", "application/json");
-}
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
+
+function downloadFile(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -177,6 +179,7 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   link.click();
   URL.revokeObjectURL(url);
 }
+
 function goToChart() {
   router.push(`/tsfile/chart/${fileId.value}`);
 }
@@ -243,6 +246,7 @@ function goToQuickScan() {
     <div class="flex-1 mt-3 min-h-0">
       <DataTable
         :data="dataRows"
+        :exporting="exporting"
         :offset="currentOffset"
         :limit="currentLimit"
         :has-more="hasMore"

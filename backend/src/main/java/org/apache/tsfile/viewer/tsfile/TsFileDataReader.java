@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 
 import org.apache.tsfile.enums.ColumnCategory;
@@ -770,6 +771,53 @@ public class TsFileDataReader {
       for (TableSchema ts : TableSchemaSupport.readAll(reader)) names.add(ts.getTableName());
     }
     return names;
+  }
+
+  /**
+   * Gets the sorted union of every data column name present in the file.
+   *
+   * <p>Table model files contribute the union of their table schemas (TAG and FIELD columns, which
+   * is exactly what a read row carries); tree model files contribute the union of the measurements
+   * found in their device metadata. Only metadata is touched, no chunk is decoded, so this stays
+   * cheap even for files with millions of rows.
+   *
+   * @param filePath the TsFile to inspect
+   * @return the column names in ascending (dictionary) order
+   * @throws IOException if the file cannot be read
+   */
+  public List<String> getAllColumnNames(File filePath) throws IOException {
+    Set<String> names = new TreeSet<>();
+
+    try (ITsFileReader reader = new TsFileReaderBuilder().file(filePath).build()) {
+      List<TableSchema> schemas = new ArrayList<>();
+      for (TableSchema ts : reader.getAllTableSchema()) {
+        schemas.add(ts);
+      }
+      if (!schemas.isEmpty()) {
+        for (TableSchema ts : schemas) {
+          for (IMeasurementSchema column : ts.getColumnSchemas()) {
+            names.add(column.getMeasurementName());
+          }
+        }
+        return new ArrayList<>(names);
+      }
+    }
+
+    try (TsFileSequenceReader seqReader = new TsFileSequenceReader(filePath.getAbsolutePath())) {
+      for (IDeviceID device : seqReader.getAllDevices()) {
+        for (Map.Entry<String, List<ChunkMetadata>> entry :
+            seqReader.readChunkMetadataInDevice(device).entrySet()) {
+          if (entry.getValue().isEmpty()) {
+            continue;
+          }
+          // Skip VECTOR type (used for the aligned time column), it is not a data column.
+          if (entry.getValue().get(0).getDataType() != TSDataType.VECTOR) {
+            names.add(entry.getKey());
+          }
+        }
+      }
+    }
+    return new ArrayList<>(names);
   }
 
   /** Gets the column schema for a specific table. */
