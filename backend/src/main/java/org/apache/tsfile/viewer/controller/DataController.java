@@ -21,23 +21,28 @@ package org.apache.tsfile.viewer.controller;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import org.apache.tsfile.viewer.dto.ChartDataRequest;
 import org.apache.tsfile.viewer.dto.ChartDataResponse;
 import org.apache.tsfile.viewer.dto.DataPreviewRequest;
 import org.apache.tsfile.viewer.dto.DataPreviewResponse;
+import org.apache.tsfile.viewer.dto.ExportFormat;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.QueryTimeoutException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
 import org.apache.tsfile.viewer.service.DataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 /**
@@ -47,6 +52,7 @@ import jakarta.validation.Valid;
  *
  * <ul>
  *   <li>POST /api/data/preview - Paginated data preview with filtering
+ *   <li>POST /api/data/export - Streaming export of all rows matching the filters
  *   <li>POST /api/data/query - Chart data with aggregation
  * </ul>
  *
@@ -78,6 +84,60 @@ public class DataController {
 
     DataPreviewResponse response = dataService.previewData(request);
     return ResponseEntity.ok(response);
+  }
+
+  /**
+   * Exports every row matching the given filters as a downloadable CSV or JSON file.
+   *
+   * <p>The request body is the preview request, so filtering behaves exactly like the preview; its
+   * {@code limit}/{@code offset} are ignored and the response is streamed page by page, which means
+   * an export is neither limited to the current preview page nor to {@code
+   * tsfile.query.max-result-size}.
+   *
+   * @param request the data preview request carrying the filters to apply
+   * @param format {@code csv} or {@code json}
+   * @param response the response the export is streamed to
+   */
+  @PostMapping("/export")
+  public void exportData(
+      @RequestBody @Valid DataPreviewRequest request,
+      @RequestParam(name = "format", defaultValue = "csv") String format,
+      HttpServletResponse response)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    ExportFormat exportFormat = ExportFormat.from(format);
+    logger.debug("Exporting data for fileId={} as {}", request.getFileId(), exportFormat);
+
+    // Resolve the file (and the CSV columns) before committing the response, so an unknown fileId
+    // (404) or a forbidden path (403) still yields the regular JSON error body instead of a broken
+    // download.
+    DataService.ExportPlan plan = dataService.prepareExport(request, exportFormat);
+
+    response.setContentType(exportFormat.getContentType());
+    response.setHeader(HttpHeaders.CONTENT_DISPOSITION, exportFormat.getContentDisposition());
+
+    long startTime = System.currentTimeMillis();
+    try {
+      long rows = dataService.exportData(plan, response.getOutputStream());
+      logger.info(
+          "Exported {} rows as {} for fileId={} in {} ms",
+          rows,
+          exportFormat,
+          request.getFileId(),
+          System.currentTimeMillis() - startTime);
+    } catch (IOException e) {
+      // Part of the body may already be on the wire (client gone, disk error while reading), so the
+      // response can only be turned into an error when nothing has been committed yet.
+      logger.error(
+          "Export failed for fileId={} as {} after {} ms",
+          request.getFileId(),
+          exportFormat,
+          System.currentTimeMillis() - startTime,
+          e);
+      if (!response.isCommitted()) {
+        throw new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR, "Export failed: " + e.getMessage(), e);
+      }
+    }
   }
 
   /**

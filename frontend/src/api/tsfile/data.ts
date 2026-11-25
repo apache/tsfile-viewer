@@ -57,6 +57,28 @@ export function queryTableData(request: TableDataRequest) {
   return apiClient.post<unknown, TableDataResponse>("/tables/query", request);
 }
 
+/**
+ * 导出接口的请求体：筛选条件与预览完全一致，但不带 limit / offset——服务端始终导出全部匹配记录。
+ */
+export type DataExportRequest = Omit<DataPreviewRequest, "limit" | "offset">;
+
+// 全量导出可能远超 axios 默认的 30s 超时，单独放宽到 10 分钟。
+const EXPORT_TIMEOUT_MS = 10 * 60_000;
+
+/**
+ * 导出当前筛选条件下的全部数据（CSV / JSON），返回文件内容。
+ *
+ * 服务端按页流式读取并写出，因此不受预览接口 max-result-size（默认 10000）的截断影响，
+ * 也不需要前端翻页拼装或把整份数据读进浏览器内存。
+ */
+export function exportData(request: DataExportRequest, format: "csv" | "json") {
+  return apiClient.post<unknown, Blob>("/data/export", request, {
+    params: { format },
+    responseType: "blob",
+    timeout: EXPORT_TIMEOUT_MS,
+  });
+}
+
 export function queryChartData(request: ChartDataRequest) {
   return apiClient.post<unknown, ChartDataResponse>("/data/query", request);
 }

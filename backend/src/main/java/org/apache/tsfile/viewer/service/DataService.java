@@ -19,11 +19,25 @@
 
 package org.apache.tsfile.viewer.service;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.tsfile.viewer.config.TsFileProperties;
@@ -35,6 +49,7 @@ import org.apache.tsfile.viewer.dto.ChartSeries;
 import org.apache.tsfile.viewer.dto.DataPreviewRequest;
 import org.apache.tsfile.viewer.dto.DataPreviewResponse;
 import org.apache.tsfile.viewer.dto.DataRow;
+import org.apache.tsfile.viewer.dto.ExportFormat;
 import org.apache.tsfile.viewer.dto.FilterConditions;
 import org.apache.tsfile.viewer.dto.TimeRange;
 import org.apache.tsfile.viewer.dto.ValueRange;
@@ -45,6 +60,8 @@ import org.apache.tsfile.viewer.tsfile.TsFileDataReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Service for data query operations.
@@ -73,9 +90,36 @@ public class DataService {
    */
   private static final int MAX_CHART_SERIES = 200;
 
+  /**
+   * Page size used while streaming an export. The reader is asked for one page at a time, so peak
+   * memory depends on this constant rather than on the size of the file being exported.
+   */
+  private static final int EXPORT_PAGE_SIZE = 2000;
+
+  /** Buffer size of the export writer; matched to a typical socket/TCP window size. */
+  private static final int EXPORT_BUFFER_SIZE = 64 * 1024;
+
+  /**
+   * Timestamp layout of the CSV export: ISO-8601 in UTC with millisecond precision, i.e. what the
+   * browser produced with {@code new Date(ms).toISOString()}.
+   */
+  private static final DateTimeFormatter EXPORT_TIMESTAMP_FORMAT =
+      DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
+
+  private static final String CSV_COLUMN_SEPARATOR = ",";
+  private static final String CSV_LINE_SEPARATOR = "\n";
+  private static final String CSV_TIMESTAMP_HEADER = "Timestamp";
+  private static final String CSV_DEVICE_HEADER = "Device";
+
   private final TsFileProperties tsFileProperties;
   private final FileService fileService;
   private final TsFileDataReader dataReader;
+
+  /**
+   * ObjectMapper for the JSON export. The application context provides no ObjectMapper bean, so one
+   * is owned here just like {@link ScanService} does for its SSE payloads.
+   */
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   public DataService(
       TsFileProperties tsFileProperties, FileService fileService, TsFileDataReader dataReader) {
@@ -83,6 +127,20 @@ public class DataService {
     this.fileService = fileService;
     this.dataReader = dataReader;
   }
+
+  /**
+   * Everything an export needs that can be resolved before a single byte is written.
+   *
+   * <p>Resolved up front so that an unknown file id (404) or a forbidden path (403) still produces
+   * a regular JSON error response instead of a download that breaks halfway.
+   *
+   * @param format the requested representation
+   * @param filePath the resolved absolute path of the TsFile
+   * @param filters the filters to apply, with {@code limit}/{@code offset} ignored
+   * @param columns the CSV measurement columns, in dictionary order (unused for JSON)
+   */
+  public record ExportPlan(
+      ExportFormat format, String filePath, FilterConditions filters, List<String> columns) {}
 
   /**
    * Previews data from a TsFile with filtering and pagination.
@@ -179,6 +237,198 @@ public class DataService {
     } catch (java.util.concurrent.TimeoutException e) {
       throw new QueryTimeoutException("Query timed out after " + timeoutSeconds + " seconds");
     }
+  }
+
+  /**
+   * Resolves everything an export needs before the first byte is written.
+   *
+   * @param request the data preview request carrying the filters; its {@code limit} and {@code
+   *     offset} are ignored on purpose, an export always covers every matching row
+   * @param format the requested representation
+   * @return the resolved export plan
+   * @throws TsFileNotFoundException if the file is not found
+   * @throws AccessDeniedException if the path is not allowed
+   * @throws IOException if the file metadata cannot be read
+   */
+  public ExportPlan prepareExport(DataPreviewRequest request, ExportFormat format)
+      throws TsFileNotFoundException, AccessDeniedException, IOException {
+    String filePath = fileService.getFilePath(request.getFileId());
+    FilterConditions filters = request.toFilterConditions();
+
+    // CSV columns are the union of the file's measurements in dictionary order; when the user
+    // narrowed the selection to specific measurements only those survive, so the export does not
+    // grow columns that are empty for every row.
+    List<String> columns = new ArrayList<>(dataReader.getAllColumnNames(new File(filePath)));
+    if (filters.getMeasurements() != null && !filters.getMeasurements().isEmpty()) {
+      Set<String> selected = new HashSet<>(filters.getMeasurements());
+      columns.removeIf(column -> !selected.contains(column));
+    }
+    columns.sort(Comparator.naturalOrder());
+
+    return new ExportPlan(format, filePath, filters, columns);
+  }
+
+  /**
+   * Streams every row matching the plan's filters as CSV or JSON.
+   *
+   * <p>Rows are read one page at a time with the page offset pushed down into the reader, filtered
+   * per page and written right away, so neither the file nor the result is ever materialized in
+   * memory. That is also why an export is not capped by {@code tsfile.query.max-result-size}: the
+   * property bounds a single read (one preview page), not the number of pages streamed here.
+   *
+   * @param plan the resolved export plan
+   * @param outputStream the stream to write to, flushed after every page
+   * @return the number of data rows written, excluding the CSV header
+   * @throws IOException if writing fails
+   */
+  public long exportData(ExportPlan plan, OutputStream outputStream) throws IOException {
+    File file = new File(plan.filePath());
+    TimeRange timeRange = plan.filters().getTimeRange();
+    Long startTime = timeRange != null ? timeRange.getStartTime() : null;
+    Long endTime = timeRange != null ? timeRange.getEndTime() : null;
+
+    long startedAt = System.currentTimeMillis();
+    long exportedRows = 0;
+    int rawOffset = 0;
+    boolean firstJsonRow = true;
+    Set<String> warnings = new LinkedHashSet<>();
+
+    Writer writer =
+        new BufferedWriter(
+            new OutputStreamWriter(outputStream, StandardCharsets.UTF_8), EXPORT_BUFFER_SIZE);
+
+    if (plan.format() == ExportFormat.CSV) {
+      writeCsvHeader(writer, plan.columns());
+    } else {
+      writer.write("[");
+    }
+
+    while (true) {
+      var page =
+          dataReader.readDataByTimeRange(file, startTime, endTime, EXPORT_PAGE_SIZE, rawOffset);
+      warnings.addAll(page.getWarnings());
+
+      // Exactly the filters the preview applies, so the export contains the rows it shows.
+      List<DataRow> rows = applyFilters(convertToDataRows(page.getData()), plan.filters());
+
+      for (DataRow row : rows) {
+        if (plan.format() == ExportFormat.CSV) {
+          writeCsvRow(writer, row, plan.columns());
+        } else {
+          writer.write(firstJsonRow ? "\n" : ",\n");
+          writer.write(objectMapper.writeValueAsString(row));
+          firstJsonRow = false;
+        }
+      }
+      exportedRows += rows.size();
+
+      // Flush after every page so the browser starts receiving data immediately.
+      writer.flush();
+      outputStream.flush();
+
+      rawOffset += page.getData().size();
+      if (!page.hasMore() || page.getData().isEmpty()) {
+        break;
+      }
+    }
+
+    if (plan.format() == ExportFormat.JSON) {
+      writer.write(firstJsonRow ? "]\n" : "\n]\n");
+    }
+    writer.flush();
+
+    if (!warnings.isEmpty()) {
+      logger.warn("Export of {} finished with warnings: {}", plan.filePath(), warnings);
+    }
+    logger.info(
+        "Exported {} rows as {} from {} in {} ms",
+        exportedRows,
+        plan.format(),
+        plan.filePath(),
+        System.currentTimeMillis() - startedAt);
+    return exportedRows;
+  }
+
+  /** Writes the CSV header line: {@code Timestamp,Device,<measurement columns...>}. */
+  private static void writeCsvHeader(Writer writer, List<String> columns) throws IOException {
+    StringBuilder line =
+        new StringBuilder(CSV_TIMESTAMP_HEADER)
+            .append(CSV_COLUMN_SEPARATOR)
+            .append(CSV_DEVICE_HEADER);
+    for (String column : columns) {
+      line.append(CSV_COLUMN_SEPARATOR).append(escapeCsv(column));
+    }
+    writer.write(line.append(CSV_LINE_SEPARATOR).toString());
+  }
+
+  /** Writes one CSV data line; a value missing from a row becomes an empty field. */
+  private static void writeCsvRow(Writer writer, DataRow row, List<String> columns)
+      throws IOException {
+    Map<String, Object> measurements = row.getMeasurements();
+    StringBuilder line = new StringBuilder(64);
+    line.append(formatTimestamp(row.getTimestamp()))
+        .append(CSV_COLUMN_SEPARATOR)
+        .append(escapeCsv(row.getDevice()));
+    for (String column : columns) {
+      Object value = measurements != null ? measurements.get(column) : null;
+      line.append(CSV_COLUMN_SEPARATOR).append(escapeCsv(csvText(value)));
+    }
+    writer.write(line.append(CSV_LINE_SEPARATOR).toString());
+  }
+
+  private static String csvText(Object value) {
+    return value == null ? "" : String.valueOf(value);
+  }
+
+  /**
+   * Makes a field safe for CSV: a value containing a separator, a quote or a line break is wrapped
+   * in double quotes with every embedded quote doubled (RFC 4180).
+   */
+  static String escapeCsv(String value) {
+    if (value == null) {
+      return "";
+    }
+    boolean needsQuoting =
+        value.indexOf(',') >= 0
+            || value.indexOf('"') >= 0
+            || value.indexOf('\n') >= 0
+            || value.indexOf('\r') >= 0;
+    return needsQuoting ? '"' + value.replace("\"", "\"\"") + '"' : value;
+  }
+
+  /**
+   * Formats a timestamp as ISO-8601 in UTC with millisecond precision, i.e. the same text the
+   * export used to produce in the browser with {@code new Date(ms).toISOString()}.
+   */
+  static String formatTimestamp(long timestamp) {
+    try {
+      return EXPORT_TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(normalizeToMillis(timestamp)));
+    } catch (DateTimeException e) {
+      return Long.toString(timestamp);
+    }
+  }
+
+  /**
+   * Normalizes a TsFile timestamp of unknown precision to milliseconds.
+   *
+   * <p>TsFile keeps whatever unit the writer chose (s/ms/us/ns) and the value's magnitude is the
+   * only hint available, exactly as in the frontend's {@code normalizeToMs}.
+   */
+  static long normalizeToMillis(long timestamp) {
+    long magnitude = Math.abs(timestamp);
+    if (magnitude >= 100_000_000_000_000_000L) {
+      return timestamp / 1_000_000L; // nanoseconds
+    }
+    if (magnitude >= 100_000_000_000_000L) {
+      return timestamp / 1_000L; // microseconds
+    }
+    if (magnitude >= 100_000_000_000L) {
+      return timestamp; // milliseconds
+    }
+    if (magnitude >= 100_000_000L) {
+      return timestamp * 1_000L; // seconds
+    }
+    return timestamp; // anything else is treated as milliseconds
   }
 
   /**
@@ -443,9 +693,9 @@ public class DataService {
   /**
    * Converts a measurement value into a number that can be plotted.
    *
-   * <p>BOOLEAN fields are mapped to 0/1. Without this, a table whose only field is a boolean
-   * (e.g. a fault flag) yields no series at all, so the chart stays empty while the data preview
-   * shows the rows.
+   * <p>BOOLEAN fields are mapped to 0/1. Without this, a table whose only field is a boolean (e.g.
+   * a fault flag) yields no series at all, so the chart stays empty while the data preview shows
+   * the rows.
    *
    * @param value the measurement value
    * @return the numeric value, or null when the value cannot be plotted
