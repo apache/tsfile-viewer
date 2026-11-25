@@ -196,7 +196,7 @@ function goToQuickScan() {
   <div class="flex flex-col h-full">
     <PageHeader :title="t('tsfile.data.title')" :subtitle="displayFileName">
       <template #actions>
-        <FileViewNav :file-id="fileId" active="data" />
+        <FileViewNav :file-id="fileId" />
       </template>
     </PageHeader>
     <template v-if="metaError">

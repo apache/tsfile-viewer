@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
   <div class="flex flex-col h-full">
     <PageHeader :title="t('tsfile.metadata.title')" :subtitle="displayFileName">
       <template #actions>
-        <FileViewNav :file-id="fileId" active="metadata" />
+        <FileViewNav :file-id="fileId" />
       </template>
     </PageHeader>
     <template v-if="error">
