@@ -29,6 +29,8 @@ export interface TreeNode {
   isDirectory: boolean;
   children?: TreeNode[];
   isLoaded?: boolean;
+  /** File size in bytes; absent for directories. */
+  size?: number;
 }
 
 export interface UploadResponse {

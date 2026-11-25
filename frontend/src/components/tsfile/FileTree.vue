@@ -43,6 +43,7 @@ import { File, FileSearch, FileText, Folder, FolderX, Search } from "lucide-vue-
 
 import { fileApi } from "@/api/tsfile";
 import { encodeFileId } from "@/utils/fileId";
+import { formatFileSize } from "@/utils/formatSize";
 
 const { t } = useI18n();
 
@@ -57,6 +58,8 @@ interface FlatNode {
   path: string;
   isDirectory: boolean;
   isLeaf: boolean;
+  /** 文件大小（字节），目录没有这个字段 */
+  size?: number;
   children?: FlatNode[];
 }
 
@@ -153,6 +156,7 @@ function transformNode(node: TreeNode): FlatNode {
     path: node.path,
     isDirectory: node.isDirectory,
     isLeaf: !node.isDirectory,
+    size: node.size,
   };
   if (node.children && node.children.length > 0) {
     result.children = node.children.map((child) => transformNode(child));
@@ -353,6 +357,7 @@ onMounted(() => {
               :stroke-width="1.75"
             />
             <span class="truncate">{{ data.title }}</span>
+            <span v-if="data.size !== undefined" class="tc-file-size">{{ formatFileSize(data.size) }}</span>
           </span>
         </template>
       </el-tree>
@@ -383,6 +388,7 @@ onMounted(() => {
                   <template v-else>{{ segment.text }}</template>
                 </template>
               </span>
+              <span v-if="data.size !== undefined" class="tc-file-size">{{ formatFileSize(data.size) }}</span>
             </span>
           </template>
         </el-tree>
@@ -451,5 +457,15 @@ onMounted(() => {
 /* 展开箭头默认 6px 内边距，收窄后每行能多露两三个字符 */
 .file-tree :deep(.el-tree-node__expand-icon) {
   padding: 0.125rem;
+}
+
+/* 文件大小徽章：靠右对齐，不参与文件名的省略计算；等宽数字避免上下行错位 */
+.tc-file-size {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 0.25rem;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-body);
 }
 </style>
