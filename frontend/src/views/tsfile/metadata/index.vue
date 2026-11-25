@@ -28,6 +28,7 @@ import MeasurementsTable from "@/components/tsfile/MeasurementsTable.vue";
 import RowGroupsTable from "@/components/tsfile/RowGroupsTable.vue";
 import ChunksTable from "@/components/tsfile/ChunksTable.vue";
 import TablesTable from "@/components/tsfile/TablesTable.vue";
+import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
@@ -104,15 +105,6 @@ async function loadMetadata() {
   }
 }
 
-function goToDataPreview() {
-  router.push(`/tsfile/data/${fileId.value}`);
-}
-function goToChart() {
-  router.push(`/tsfile/chart/${fileId.value}`);
-}
-function goBack() {
-  router.push("/tsfile/files");
-}
 function goToQuickScan() {
   try {
     const filePath = decodeFileId(fileId.value);
@@ -183,9 +175,7 @@ onBeforeUnmount(() => {
   <div class="flex flex-col h-full">
     <PageHeader :title="t('tsfile.metadata.title')" :subtitle="displayFileName">
       <template #actions>
-        <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-        <el-button type="primary" @click="goToDataPreview">{{ t("tsfile.data.title") }}</el-button>
-        <el-button @click="goToChart">{{ t("tsfile.chart.title") }}</el-button>
+        <FileViewNav :file-id="fileId" active="metadata" />
       </template>
     </PageHeader>
     <template v-if="error">

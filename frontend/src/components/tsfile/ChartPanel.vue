@@ -81,6 +81,19 @@ function calcChartHeight() {
   chartHeight.value = Math.max(400, window.innerHeight - 310);
 }
 
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * 时间轴标签统一显示到秒（年月日时分秒）。
+ * 原先只输出 HH:mm，跨天数据在横轴上就是同一串时刻（00:00、01:00…），看不出是哪一天。
+ */
+function formatAxisLabel(value: number): string {
+  const date = new Date(value);
+  const day = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  const clock = `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+  return `${day} ${clock}`;
+}
+
 const chartOption = computed(() => {
   const style = getChartStyle(isDark.value);
   const legendData = props.series.map((s) => s.name);
@@ -134,10 +147,9 @@ const chartOption = computed(() => {
       boundaryGap: false,
       axisLabel: {
         ...style.timeAxis.axisLabel,
-        formatter: (value: number) => {
-          const date = new Date(value);
-          return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-        },
+        formatter: (value: number) => formatAxisLabel(value),
+        // 标签带完整年月日时分秒后很长，密度高时会互相压住，交给 ECharts 丢掉重叠项
+        hideOverlap: true,
       },
     },
     yAxis: {
@@ -146,7 +158,13 @@ const chartOption = computed(() => {
     },
     dataZoom: [
       { type: "inside" as const, start: 0, end: 100 },
-      { type: "slider" as const, start: 0, end: 100, bottom: "8%" },
+      {
+        type: "slider" as const,
+        start: 0,
+        end: 100,
+        bottom: "8%",
+        labelFormatter: (value: number) => formatAxisLabel(value),
+      },
     ],
     series: seriesData,
   };

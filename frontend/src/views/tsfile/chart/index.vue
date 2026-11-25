@@ -26,6 +26,7 @@ import { dataApi, metaApi } from "@/api/tsfile";
 import ChartPanel from "@/components/tsfile/ChartPanel.vue";
 import TableFilterPanel from "@/components/tsfile/TableFilterPanel.vue";
 import TreeFilterPanel from "@/components/tsfile/TreeFilterPanel.vue";
+import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
@@ -128,15 +129,7 @@ function handleFilterChange(filters: Record<string, unknown>) {
   currentFilters.value = filters;
   loadChartData(filters);
 }
-function goToDataPreview() {
-  router.push(`/tsfile/data/${fileId.value}`);
-}
-function goToMetadata() {
-  router.push(`/tsfile/meta/${fileId.value}`);
-}
-function goBack() {
-  router.push("/tsfile/files");
-}
+
 function goToQuickScan() {
   try {
     const filePath = decodeFileId(fileId.value);
@@ -153,9 +146,7 @@ function goToQuickScan() {
   <div class="flex h-full flex-col">
     <PageHeader :title="t('tsfile.chart.title')" :subtitle="displayFileName">
       <template #actions>
-        <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-        <el-button @click="goToMetadata">{{ t("tsfile.metadata.title") }}</el-button>
-        <el-button type="primary" @click="goToDataPreview">{{ t("tsfile.data.title") }}</el-button>
+        <FileViewNav :file-id="fileId" active="chart" />
       </template>
     </PageHeader>
     <template v-if="metaError">

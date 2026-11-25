@@ -27,6 +27,7 @@ import { dataApi, metaApi } from "@/api/tsfile";
 import DataTable from "@/components/tsfile/DataTable.vue";
 import TableFilterPanel from "@/components/tsfile/TableFilterPanel.vue";
 import TreeFilterPanel from "@/components/tsfile/TreeFilterPanel.vue";
+import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
@@ -180,15 +181,6 @@ function downloadFile(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function goToChart() {
-  router.push(`/tsfile/chart/${fileId.value}`);
-}
-function goToMetadata() {
-  router.push(`/tsfile/meta/${fileId.value}`);
-}
-function goBack() {
-  router.push("/tsfile/files");
-}
 function goToQuickScan() {
   try {
     const filePath = decodeFileId(fileId.value);
@@ -204,9 +196,7 @@ function goToQuickScan() {
   <div class="flex flex-col h-full">
     <PageHeader :title="t('tsfile.data.title')" :subtitle="displayFileName">
       <template #actions>
-        <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-        <el-button @click="goToMetadata">{{ t("tsfile.metadata.title") }}</el-button>
-        <el-button type="primary" @click="goToChart">{{ t("tsfile.chart.title") }}</el-button>
+        <FileViewNav :file-id="fileId" active="data" />
       </template>
     </PageHeader>
     <template v-if="metaError">
