@@ -21,7 +21,8 @@
  * FileViewNav - 单个 TsFile 的三个功能视图切换按钮组。
  *
  * 三个功能页显示同一组按钮，位置固定：返回 / 元数据 / 图表可视化 / 数据预览。
- * 「数据预览」是各页的默认落地页，始终蓝底白字并固定在最右，其余按钮白底黑字。
+ * 按钮统一用 link 形态（无边框无底色），避免和内容区的实心按钮混淆；
+ * 「数据预览」是各页的默认落地页，用 primary 色文字固定在最右，其余为次要文字色。
  * 之前每页各写一套，高亮既会指到别的功能上，按钮位置也随页面变动（当前功能被排到最右），
  * 这里收敛到一处并固定顺序，切换页面时按钮不跳位。
  */
@@ -50,8 +51,8 @@ function goTo(path: string) {
 </script>
 
 <template>
-  <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-  <el-button @click="goTo(metadataPath)">{{ t("tsfile.metadata.title") }}</el-button>
-  <el-button @click="goTo(chartPath)">{{ t("tsfile.chart.title") }}</el-button>
-  <el-button type="primary" @click="goTo(dataPath)">{{ t("tsfile.data.title") }}</el-button>
+  <el-button link @click="goBack">{{ t("tsfile.common.back") }}</el-button>
+  <el-button link @click="goTo(metadataPath)">{{ t("tsfile.metadata.title") }}</el-button>
+  <el-button link @click="goTo(chartPath)">{{ t("tsfile.chart.title") }}</el-button>
+  <el-button link type="primary" @click="goTo(dataPath)">{{ t("tsfile.data.title") }}</el-button>
 </template>

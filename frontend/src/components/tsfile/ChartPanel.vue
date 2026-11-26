@@ -27,6 +27,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { getChartStyle } from "@/theme/charts";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 import { useTheme } from "@/composables/useTheme";
 import { normalizeToMs } from "@/utils/timestamp";
 import { LineChart } from "echarts/charts";
@@ -55,6 +56,8 @@ interface Props {
   error?: string | null;
   downsampled?: boolean;
   totalPoints?: number;
+  /** 被「前 N 条」上限挡掉、没有参与绘制的序列数 */
+  omittedSeries?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -62,14 +65,14 @@ const props = withDefaults(defineProps<Props>(), {
   error: null,
   downsampled: false,
   totalPoints: 0,
+  omittedSeries: 0,
   timeRange: undefined,
 });
 
 const { t } = useI18n();
 const { isDark } = useTheme();
 
-// 单图最多渲染的序列数，超过则拒绝绘制并提示（防止数千条折线卡死浏览器）
-const MAX_CHART_SERIES = 50;
+// 超过上限时拒绝绘制并提示（防止数千条折线卡死浏览器）；正常流程里图表页已按上限截断请求
 const tooManySeries = computed(() => props.series.length > MAX_CHART_SERIES);
 
 const chartRef = ref<HTMLDivElement | null>(null);
@@ -250,6 +253,16 @@ onUnmounted(() => {
       class="mb-2 flex-shrink-0"
     >
       {{ t("tsfile.chart.downsampledDescription") }}
+    </el-alert>
+    <el-alert
+      v-if="omittedSeries > 0"
+      type="warning"
+      :title="t('tsfile.chart.seriesTruncated', { max: MAX_CHART_SERIES, omitted: omittedSeries })"
+      show-icon
+      :closable="false"
+      class="mb-2 flex-shrink-0"
+    >
+      {{ t("tsfile.chart.seriesTruncatedDescription", { max: MAX_CHART_SERIES }) }}
     </el-alert>
     <el-alert
       v-if="error"

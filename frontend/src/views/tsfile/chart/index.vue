@@ -30,6 +30,7 @@ import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 
 const route = useRoute();
 const router = useRouter();
@@ -50,6 +51,8 @@ const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, unknown>>({});
 const metadata = ref<TsFileMetadata | null>(null);
 const metaError = ref<string | null>(null);
+/** 选中的序列超过 MAX_CHART_SERIES 时，被挡掉没有请求的数量 */
+const omittedSeries = ref(0);
 
 const isTableModel = computed(() => metadata.value?.tables && metadata.value.tables.length > 0);
 
@@ -75,6 +78,7 @@ watch(
       timeRange.value = undefined;
       totalPoints.value = 0;
       downsampled.value = false;
+      omittedSeries.value = 0;
       error.value = null;
       currentFilters.value = {};
       metadata.value = null;
@@ -98,8 +102,11 @@ async function loadChartData(filters: Record<string, unknown>) {
   loading.value = true;
   error.value = null;
   try {
-    const measurements = filters.measurements as string[] | undefined;
-    if (!measurements || measurements.length === 0) {
+    const selected = (filters.measurements as string[] | undefined) ?? [];
+    // 选中超过上限时默认只画前 MAX_CHART_SERIES 条，其余留给筛选器调整，避免一次画近百条折线卡住页面
+    const measurements = selected.slice(0, MAX_CHART_SERIES);
+    omittedSeries.value = selected.length - measurements.length;
+    if (measurements.length === 0) {
       chartSeries.value = [];
       loading.value = false;
       return;
@@ -180,6 +187,7 @@ function goToQuickScan() {
           :error="error"
           :downsampled="downsampled"
           :total-points="totalPoints"
+          :omitted-series="omittedSeries"
         />
       </div>
     </div>
