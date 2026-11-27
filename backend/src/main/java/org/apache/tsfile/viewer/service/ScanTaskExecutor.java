@@ -35,16 +35,15 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import org.apache.tsfile.viewer.config.TsFileProperties;
+import org.apache.tsfile.viewer.dto.HealthStatus;
+import org.apache.tsfile.viewer.dto.ScanTaskStatus;
+import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-
-import org.apache.tsfile.viewer.config.TsFileProperties;
-import org.apache.tsfile.viewer.dto.HealthStatus;
-import org.apache.tsfile.viewer.dto.ScanTaskStatus;
-import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
 
 import jakarta.annotation.PreDestroy;
 

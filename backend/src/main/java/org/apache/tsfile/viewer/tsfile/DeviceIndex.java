@@ -40,8 +40,7 @@ public final class DeviceIndex {
   private final List<IDeviceID> devices;
   private final int[] chunkPrefix;
 
-  private DeviceIndex(
-      long lastModified, long size, List<IDeviceID> devices, int[] chunkPrefix) {
+  private DeviceIndex(long lastModified, long size, List<IDeviceID> devices, int[] chunkPrefix) {
     this.lastModified = lastModified;
     this.size = size;
     this.devices = devices;

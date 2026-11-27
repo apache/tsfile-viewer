@@ -21,6 +21,8 @@ package org.apache.tsfile.viewer.config;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.tsfile.viewer.service.ScanTask;
+import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -28,8 +30,6 @@ import org.springframework.context.annotation.Configuration;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.tsfile.viewer.service.ScanTask;
-import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
 
 /**
  * Configuration for the scan result Caffeine cache.

@@ -226,8 +226,8 @@ public class TsFileDataReader {
    * Reads data from a TsFile, optionally restricted to the given devices and measurements.
    *
    * <p>The restriction is pushed down into the tree model read path. Without it a tree model file
-   * is read device by device in storage order, so the row limit is exhausted by the first device and
-   * a later device (or its measurements) can never be matched by the post-read filters.
+   * is read device by device in storage order, so the row limit is exhausted by the first device
+   * and a later device (or its measurements) can never be matched by the post-read filters.
    *
    * @param filePath file to read
    * @param startTime inclusive lower time bound, or null

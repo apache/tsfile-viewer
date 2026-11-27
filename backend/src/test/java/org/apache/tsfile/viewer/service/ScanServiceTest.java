@@ -33,15 +33,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.HealthStatus;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
@@ -52,6 +43,15 @@ import org.apache.tsfile.viewer.dto.ScanTaskStatus;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TaskNotFoundException;
 import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * Unit tests for {@link ScanService}.
@@ -162,10 +162,9 @@ class ScanServiceTest {
       verify(scanTaskCache)
           .put(
               any(String.class),
-              org.mockito.ArgumentMatchers.argThat(
-                  task ->
-                      task.getStatus() == ScanTaskStatus.QUEUED
-                          && task.getTargetPath().equals("/data/tsfiles")));
+              org.mockito.ArgumentMatchers.argThat(task ->
+                  task.getStatus() == ScanTaskStatus.QUEUED
+                      && task.getTargetPath().equals("/data/tsfiles")));
     }
   }
 

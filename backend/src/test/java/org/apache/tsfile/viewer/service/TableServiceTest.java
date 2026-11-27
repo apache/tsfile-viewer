@@ -32,6 +32,11 @@ import java.util.Arrays;
 import org.apache.tsfile.enums.ColumnCategory;
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.file.metadata.TableSchema;
+import org.apache.tsfile.viewer.dto.DeviceListResponse;
+import org.apache.tsfile.viewer.dto.TableDataRequest;
+import org.apache.tsfile.viewer.dto.TableDataResponse;
+import org.apache.tsfile.viewer.dto.TableListResponse;
+import org.apache.tsfile.viewer.dto.ValueRange;
 import org.apache.tsfile.write.record.Tablet;
 import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
@@ -43,12 +48,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.apache.tsfile.viewer.dto.DeviceListResponse;
-import org.apache.tsfile.viewer.dto.TableDataRequest;
-import org.apache.tsfile.viewer.dto.TableDataResponse;
-import org.apache.tsfile.viewer.dto.TableListResponse;
-import org.apache.tsfile.viewer.dto.ValueRange;
 
 /**
  * Unit tests for TableService.

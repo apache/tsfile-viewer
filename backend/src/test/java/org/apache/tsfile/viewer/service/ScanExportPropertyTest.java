@@ -25,10 +25,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.HealthStatus;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.jqwik.api.*;
 
@@ -285,37 +286,36 @@ class ScanExportPropertyTest {
             taskIds(),
             Arbitraries.longs().between(0, 600_000L), // totalDurationMs
             scanResultLists())
-        .as(
-            (taskId, totalDurationMs, results) -> {
-              ScanReport report = new ScanReport(taskId);
-              report.setResults(results);
-              report.setTotalFiles(results.size());
-              report.setTotalDurationMs(totalDurationMs);
+        .as((taskId, totalDurationMs, results) -> {
+          ScanReport report = new ScanReport(taskId);
+          report.setResults(results);
+          report.setTotalFiles(results.size());
+          report.setTotalDurationMs(totalDurationMs);
 
-              // Compute counts from results
-              int healthyCount = 0;
-              int warningCount = 0;
-              int errorCount = 0;
-              Map<ScanErrorType, Integer> errorTypeDist = new HashMap<>();
+          // Compute counts from results
+          int healthyCount = 0;
+          int warningCount = 0;
+          int errorCount = 0;
+          Map<ScanErrorType, Integer> errorTypeDist = new HashMap<>();
 
-              for (ScanResult result : results) {
-                switch (result.getHealthStatus()) {
-                  case HEALTHY -> healthyCount++;
-                  case WARNING -> warningCount++;
-                  case ERROR -> errorCount++;
-                }
-                for (FileError error : result.getErrors()) {
-                  errorTypeDist.merge(error.getErrorType(), 1, Integer::sum);
-                }
-              }
+          for (ScanResult result : results) {
+            switch (result.getHealthStatus()) {
+              case HEALTHY -> healthyCount++;
+              case WARNING -> warningCount++;
+              case ERROR -> errorCount++;
+            }
+            for (FileError error : result.getErrors()) {
+              errorTypeDist.merge(error.getErrorType(), 1, Integer::sum);
+            }
+          }
 
-              report.setHealthyCount(healthyCount);
-              report.setWarningCount(warningCount);
-              report.setErrorCount(errorCount);
-              report.setErrorTypeDistribution(errorTypeDist);
+          report.setHealthyCount(healthyCount);
+          report.setWarningCount(warningCount);
+          report.setErrorCount(errorCount);
+          report.setErrorTypeDistribution(errorTypeDist);
 
-              return report;
-            });
+          return report;
+        });
   }
 
   /** Generates task IDs matching the format: 14-digit timestamp + hyphen + 6 alphanumeric. */
@@ -344,14 +344,9 @@ class ScanExportPropertyTest {
             fileErrorLists(), // errors
             Arbitraries.longs().between(0, 60_000L) // scan duration ms
             )
-        .as(
-            (fileName, fileSize, healthStatus, errors, scanDurationMs) ->
-                new ScanResult(
-                    "/data/" + fileName + ".tsfile",
-                    fileSize,
-                    healthStatus,
-                    errors,
-                    scanDurationMs));
+        .as((fileName, fileSize, healthStatus, errors, scanDurationMs) ->
+            new ScanResult(
+                "/data/" + fileName + ".tsfile", fileSize, healthStatus, errors, scanDurationMs));
   }
 
   /** Generates a list of random {@link FileError} objects. */

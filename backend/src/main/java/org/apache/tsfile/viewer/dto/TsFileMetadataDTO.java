@@ -36,6 +36,7 @@ public class TsFileMetadataDTO {
 
   /** Size of the file on disk, in bytes. */
   private long fileSize;
+
   private TimeRange timeRange;
   private int deviceCount;
   private int measurementCount;

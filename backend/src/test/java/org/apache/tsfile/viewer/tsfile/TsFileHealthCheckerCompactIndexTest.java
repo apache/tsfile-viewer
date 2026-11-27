@@ -29,27 +29,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import org.apache.tsfile.file.metadata.IChunkMetadata;
 import org.apache.tsfile.file.metadata.TimeseriesMetadata;
 import org.apache.tsfile.read.TsFileSequenceReader;
-
 import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.HealthStatus;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
 import org.apache.tsfile.viewer.service.FileError;
 import org.apache.tsfile.viewer.service.ScanResult;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests for the compact chunk metadata index that replaced the per-chunk {@code Map<Long,
  * IChunkMetadata>} in {@link TsFileHealthChecker}.
  *
  * <p>Covers: structure construction and lookup correctness, {@code quickCheck} early exit, the
- * over-limit degradation path, and equality of the scan conclusions against the pre-change
- * metadata map.
+ * over-limit degradation path, and equality of the scan conclusions against the pre-change metadata
+ * map.
  */
 class TsFileHealthCheckerCompactIndexTest {
 

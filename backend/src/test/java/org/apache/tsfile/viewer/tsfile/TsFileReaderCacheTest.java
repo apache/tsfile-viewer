@@ -26,6 +26,9 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import org.apache.tsfile.viewer.config.TsFileProperties;
+import org.apache.tsfile.viewer.config.TsFileProperties.CacheProperties;
+import org.apache.tsfile.viewer.config.TsFileProperties.ReaderCacheProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,10 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.apache.tsfile.viewer.config.TsFileProperties;
-import org.apache.tsfile.viewer.config.TsFileProperties.CacheProperties;
-import org.apache.tsfile.viewer.config.TsFileProperties.ReaderCacheProperties;
 
 /**
  * Unit tests for {@link TsFileReaderCache}.
@@ -188,10 +187,9 @@ class TsFileReaderCacheTest {
       Thread[] threads = new Thread[10];
       for (int i = 0; i < threads.length; i++) {
         threads[i] =
-            new Thread(
-                () -> {
-                  readerCache.closeReader(fileId);
-                });
+            new Thread(() -> {
+              readerCache.closeReader(fileId);
+            });
       }
 
       // Start all threads
@@ -214,10 +212,9 @@ class TsFileReaderCacheTest {
       Thread[] threads = new Thread[5];
       for (int i = 0; i < threads.length; i++) {
         threads[i] =
-            new Thread(
-                () -> {
-                  readerCache.evictStaleReaders();
-                });
+            new Thread(() -> {
+              readerCache.evictStaleReaders();
+            });
       }
 
       for (Thread thread : threads) {

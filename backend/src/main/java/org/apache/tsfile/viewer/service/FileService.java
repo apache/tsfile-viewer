@@ -35,13 +35,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.apache.tsfile.viewer.dto.FileInfo;
 import org.apache.tsfile.viewer.dto.TreeNode;
@@ -49,6 +42,13 @@ import org.apache.tsfile.viewer.dto.UploadResponse;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.InvalidFileException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Service for file management operations.
@@ -142,8 +142,8 @@ public class FileService {
    * @param loadChildren whether to load children for directories
    * @return TreeNode representing the path
    */
-  private TreeNode buildTreeNode(
-      Path path, BasicFileAttributes attributes, boolean loadChildren) throws IOException {
+  private TreeNode buildTreeNode(Path path, BasicFileAttributes attributes, boolean loadChildren)
+      throws IOException {
     String name = path.getFileName() != null ? path.getFileName().toString() : path.toString();
     boolean isDirectory = attributes.isDirectory();
 

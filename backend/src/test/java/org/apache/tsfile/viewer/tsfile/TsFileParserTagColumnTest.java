@@ -27,12 +27,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.tsfile.viewer.dto.MeasurementDTO;
 
 /**
  * Test for TAG column identification in V4 table model TsFile.

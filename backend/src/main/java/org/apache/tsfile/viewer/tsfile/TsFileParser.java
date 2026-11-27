@@ -44,14 +44,13 @@ import org.apache.tsfile.file.metadata.statistics.Statistics;
 import org.apache.tsfile.read.TsFileSequenceReader;
 import org.apache.tsfile.read.v4.ITsFileReader;
 import org.apache.tsfile.read.v4.TsFileReaderBuilder;
+import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.MeasurementDTO;
+import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.write.schema.IMeasurementSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import org.apache.tsfile.viewer.dto.ChunkDTO;
-import org.apache.tsfile.viewer.dto.MeasurementDTO;
-import org.apache.tsfile.viewer.dto.RowGroupDTO;
 
 /**
  * Utility class for parsing TsFile metadata.
@@ -410,7 +409,6 @@ public class TsFileParser {
         totalChunks(scan));
   }
 
-
   /**
    * Parses measurement schema details from a TsFileSequenceReader.
    *
@@ -438,7 +436,6 @@ public class TsFileParser {
     return scan.measurements();
   }
 
-
   /**
    * Parses table schemas from a V4 table model TsFile.
    *
@@ -455,7 +452,6 @@ public class TsFileParser {
     logger.debug("Parsed {} tables total", tableInfos.size());
     return tableInfos;
   }
-
 
   /**
    * Parses RowGroup metadata from a TsFileSequenceReader.
@@ -515,7 +511,6 @@ public class TsFileParser {
 
     return new RowGroupInfo(index, device.toString(), minStartTime, maxEndTime, chunkCount);
   }
-
 
   /**
    * Parses Chunk metadata from a TsFileSequenceReader.
@@ -632,7 +627,6 @@ public class TsFileParser {
     }
     return chunks;
   }
-
 
   /**
    * Calculates an estimated compression ratio for a chunk.
@@ -762,17 +756,17 @@ public class TsFileParser {
   /**
    * Reads the measurements carried by one device.
    *
-   * <p>Tree model files nest measurements under devices, so the measurement choices a client
-   * offers have to come from the selected device rather than from the whole file. Only that
-   * device's metadata is read.
+   * <p>Tree model files nest measurements under devices, so the measurement choices a client offers
+   * have to come from the selected device rather than from the whole file. Only that device's
+   * metadata is read.
    *
    * @param reader TsFile reader
    * @param device device to read
    * @return measurements of that device, sorted by name, excluding the VECTOR time column
    * @throws IOException if reading fails
    */
-  public List<MeasurementDTO> readDeviceMeasurements(
-      TsFileSequenceReader reader, IDeviceID device) throws IOException {
+  public List<MeasurementDTO> readDeviceMeasurements(TsFileSequenceReader reader, IDeviceID device)
+      throws IOException {
     Map<String, List<ChunkMetadata>> seriesMetadata = reader.readChunkMetadataInDevice(device);
     List<MeasurementDTO> measurements = new ArrayList<>();
     for (Map.Entry<String, List<ChunkMetadata>> entry : seriesMetadata.entrySet()) {
@@ -1173,7 +1167,6 @@ public class TsFileParser {
         .build();
   }
 
-
   // ============== DTO Conversion Methods ==============
 
   /** Record containing basic TsFile metadata. */
@@ -1208,15 +1201,14 @@ public class TsFileParser {
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
       List<MeasurementInfo> infos = parseMeasurements(reader);
       return infos.stream()
-          .map(
-              info ->
-                  MeasurementDTO.builder()
-                      .name(info.getName())
-                      .dataType(info.getDataType())
-                      .encoding(info.getEncoding())
-                      .compression(info.getCompression())
-                      .columnCategory(info.getColumnCategory())
-                      .build())
+          .map(info ->
+              MeasurementDTO.builder()
+                  .name(info.getName())
+                  .dataType(info.getDataType())
+                  .encoding(info.getEncoding())
+                  .compression(info.getCompression())
+                  .columnCategory(info.getColumnCategory())
+                  .build())
           .toList();
     }
   }
@@ -1233,43 +1225,40 @@ public class TsFileParser {
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
       List<TableInfo> infos = parseTables(reader);
       return infos.stream()
-          .map(
-              info -> {
-                // Convert tag columns
-                List<MeasurementDTO> tagDTOs =
-                    info.getTagColumns().stream()
-                        .map(
-                            col ->
-                                MeasurementDTO.builder()
-                                    .name(col.getName())
-                                    .dataType(col.getDataType())
-                                    .encoding(col.getEncoding())
-                                    .compression(col.getCompression())
-                                    .columnCategory(col.getColumnCategory())
-                                    .build())
-                        .toList();
+          .map(info -> {
+            // Convert tag columns
+            List<MeasurementDTO> tagDTOs =
+                info.getTagColumns().stream()
+                    .map(col ->
+                        MeasurementDTO.builder()
+                            .name(col.getName())
+                            .dataType(col.getDataType())
+                            .encoding(col.getEncoding())
+                            .compression(col.getCompression())
+                            .columnCategory(col.getColumnCategory())
+                            .build())
+                    .toList();
 
-                // Convert field columns
-                List<MeasurementDTO> fieldDTOs =
-                    info.getFieldColumns().stream()
-                        .map(
-                            col ->
-                                MeasurementDTO.builder()
-                                    .name(col.getName())
-                                    .dataType(col.getDataType())
-                                    .encoding(col.getEncoding())
-                                    .compression(col.getCompression())
-                                    .columnCategory(col.getColumnCategory())
-                                    .build())
-                        .toList();
+            // Convert field columns
+            List<MeasurementDTO> fieldDTOs =
+                info.getFieldColumns().stream()
+                    .map(col ->
+                        MeasurementDTO.builder()
+                            .name(col.getName())
+                            .dataType(col.getDataType())
+                            .encoding(col.getEncoding())
+                            .compression(col.getCompression())
+                            .columnCategory(col.getColumnCategory())
+                            .build())
+                    .toList();
 
-                return org.apache.tsfile.viewer.dto.TableDTO.builder()
-                    .tableName(info.getTableName())
-                    .tagColumns(tagDTOs)
-                    .fieldColumns(fieldDTOs)
-                    .totalColumns(info.getTotalColumns())
-                    .build();
-              })
+            return org.apache.tsfile.viewer.dto.TableDTO.builder()
+                .tableName(info.getTableName())
+                .tagColumns(tagDTOs)
+                .fieldColumns(fieldDTOs)
+                .totalColumns(info.getTotalColumns())
+                .build();
+          })
           .toList();
     }
   }
@@ -1285,15 +1274,14 @@ public class TsFileParser {
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
       List<RowGroupInfo> infos = parseRowGroups(reader);
       return infos.stream()
-          .map(
-              info ->
-                  RowGroupDTO.builder()
-                      .index(info.getIndex())
-                      .device(info.getDevice())
-                      .startTime(info.getStartTime())
-                      .endTime(info.getEndTime())
-                      .chunkCount(info.getChunkCount())
-                      .build())
+          .map(info ->
+              RowGroupDTO.builder()
+                  .index(info.getIndex())
+                  .device(info.getDevice())
+                  .startTime(info.getStartTime())
+                  .endTime(info.getEndTime())
+                  .chunkCount(info.getChunkCount())
+                  .build())
           .toList();
     }
   }
@@ -1309,23 +1297,22 @@ public class TsFileParser {
     try (TsFileSequenceReader reader = new TsFileSequenceReader(filePath)) {
       List<ChunkInfo> infos = parseChunks(reader);
       return infos.stream()
-          .map(
-              info ->
-                  ChunkDTO.builder()
-                      .measurement(info.getMeasurement())
-                      .offset(info.getOffset())
-                      .size(info.getSize())
-                      .compressionRatio(info.getCompressionRatio())
-                      .device(info.getDevice())
-                      .dataType(info.getDataType())
-                      .encoding(info.getEncoding())
-                      .compression(info.getCompression())
-                      .startTime(info.getStartTime())
-                      .endTime(info.getEndTime())
-                      .numOfPoints(info.getNumOfPoints())
-                      .minValue(info.getMinValue())
-                      .maxValue(info.getMaxValue())
-                      .build())
+          .map(info ->
+              ChunkDTO.builder()
+                  .measurement(info.getMeasurement())
+                  .offset(info.getOffset())
+                  .size(info.getSize())
+                  .compressionRatio(info.getCompressionRatio())
+                  .device(info.getDevice())
+                  .dataType(info.getDataType())
+                  .encoding(info.getEncoding())
+                  .compression(info.getCompression())
+                  .startTime(info.getStartTime())
+                  .endTime(info.getEndTime())
+                  .numOfPoints(info.getNumOfPoints())
+                  .minValue(info.getMinValue())
+                  .maxValue(info.getMaxValue())
+                  .build())
           .toList();
     }
   }

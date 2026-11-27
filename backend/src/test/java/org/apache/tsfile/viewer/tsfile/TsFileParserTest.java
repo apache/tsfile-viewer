@@ -30,6 +30,11 @@ import java.util.List;
 
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.file.metadata.TableSchema;
+import org.apache.tsfile.viewer.tsfile.TsFileParser.BasicMetadata;
+import org.apache.tsfile.viewer.tsfile.TsFileParser.ChunkInfo;
+import org.apache.tsfile.viewer.tsfile.TsFileParser.MeasurementInfo;
+import org.apache.tsfile.viewer.tsfile.TsFileParser.ParsedMetadata;
+import org.apache.tsfile.viewer.tsfile.TsFileParser.RowGroupInfo;
 import org.apache.tsfile.write.record.Tablet;
 import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
@@ -39,12 +44,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import org.apache.tsfile.viewer.tsfile.TsFileParser.BasicMetadata;
-import org.apache.tsfile.viewer.tsfile.TsFileParser.ChunkInfo;
-import org.apache.tsfile.viewer.tsfile.TsFileParser.MeasurementInfo;
-import org.apache.tsfile.viewer.tsfile.TsFileParser.ParsedMetadata;
-import org.apache.tsfile.viewer.tsfile.TsFileParser.RowGroupInfo;
 
 /**
  * Tests for {@link TsFileParser}.
