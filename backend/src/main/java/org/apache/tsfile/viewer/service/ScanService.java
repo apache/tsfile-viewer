@@ -32,15 +32,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.tsfile.viewer.dto.FileErrorDTO;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
 import org.apache.tsfile.viewer.dto.ScanReportDTO;
@@ -50,6 +41,15 @@ import org.apache.tsfile.viewer.dto.ScanTaskStatus;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TaskNotFoundException;
 import org.apache.tsfile.viewer.tsfile.TsFileHealthChecker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * Core service for managing scan tasks.
@@ -145,10 +145,9 @@ public class ScanService {
     int activeCount =
         (int)
             scanTaskCache.asMap().values().stream()
-                .filter(
-                    t ->
-                        t.getStatus() == ScanTaskStatus.QUEUED
-                            || t.getStatus() == ScanTaskStatus.RUNNING)
+                .filter(t ->
+                    t.getStatus() == ScanTaskStatus.QUEUED
+                        || t.getStatus() == ScanTaskStatus.RUNNING)
                 .count();
     task.setQueuePosition(activeCount);
 

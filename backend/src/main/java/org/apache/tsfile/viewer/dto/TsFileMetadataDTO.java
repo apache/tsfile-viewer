@@ -33,6 +33,10 @@ public class TsFileMetadataDTO {
 
   private String fileId;
   private String version;
+
+  /** Size of the file on disk, in bytes. */
+  private long fileSize;
+
   private TimeRange timeRange;
   private int deviceCount;
   private int measurementCount;
@@ -56,6 +60,14 @@ public class TsFileMetadataDTO {
 
   public String getVersion() {
     return version;
+  }
+
+  public long getFileSize() {
+    return fileSize;
+  }
+
+  public void setFileSize(long fileSize) {
+    this.fileSize = fileSize;
   }
 
   public void setVersion(String version) {

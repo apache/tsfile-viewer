@@ -44,6 +44,13 @@ const sidebarOpen = ref(false);
 
 const isOnScanPage = computed(() => route.name === "FileScan");
 
+/** 当前所在的功能页；不在三个功能页上时为 null（文件列表、扫描页等） */
+const currentFileView = computed(() => {
+  const name = route.name;
+  if (name === "DataPreview" || name === "ChartVisualization" || name === "Metadata") return name;
+  return null;
+});
+
 const elementLocale = computed(() => (locale.value === "zh-CN" ? zhCn : en));
 
 function handleFileSelect(fileId: string, path: string, name: string) {
@@ -51,7 +58,10 @@ function handleFileSelect(fileId: string, path: string, name: string) {
     fileStore.setScanTarget(path, "file");
   } else {
     fileStore.setCurrentFile(fileId, name);
-    router.push(`/tsfile/data/${fileId}`);
+    // 在功能页里换文件时停留在当前页面，只换 fileId；不在功能页时默认进数据预览
+    if (currentFileView.value === "ChartVisualization") router.push(`/tsfile/chart/${fileId}`);
+    else if (currentFileView.value === "Metadata") router.push(`/tsfile/meta/${fileId}`);
+    else router.push(`/tsfile/data/${fileId}`);
   }
 }
 

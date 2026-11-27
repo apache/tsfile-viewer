@@ -144,14 +144,13 @@ class ScanServicePropertyTest {
                 Arbitraries.of(HealthStatus.values()), // health status
                 Arbitraries.longs().between(0, 60_000L) // scan duration ms
                 )
-            .as(
-                (fileName, fileSize, healthStatus, scanDurationMs) ->
-                    new ScanResult(
-                        "/data/" + fileName + ".tsfile",
-                        fileSize,
-                        healthStatus,
-                        new ArrayList<>(),
-                        scanDurationMs));
+            .as((fileName, fileSize, healthStatus, scanDurationMs) ->
+                new ScanResult(
+                    "/data/" + fileName + ".tsfile",
+                    fileSize,
+                    healthStatus,
+                    new ArrayList<>(),
+                    scanDurationMs));
 
     return scanResultArbitrary.list().ofMinSize(0).ofMaxSize(200);
   }

@@ -24,13 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
-
 import org.apache.tsfile.viewer.dto.ChunkDTO;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.dto.TableDTO;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 /**
  * 使用真实TsFile文件测试元数据读取功能
@@ -294,15 +293,14 @@ class RealFilesMetadataTest {
     System.out.println("\nChunks by measurement:");
     chunks.stream()
         .collect(java.util.stream.Collectors.groupingBy(ChunkDTO::getMeasurement))
-        .forEach(
-            (measurement, chunkList) -> {
-              System.out.println(
-                  "  "
-                      + (measurement.isEmpty() ? "(empty)" : measurement)
-                      + ": "
-                      + chunkList.size()
-                      + " chunks");
-            });
+        .forEach((measurement, chunkList) -> {
+          System.out.println(
+              "  "
+                  + (measurement.isEmpty() ? "(empty)" : measurement)
+                  + ": "
+                  + chunkList.size()
+                  + " chunks");
+        });
 
     // Show first 10 chunks with detailed information
     int displayCount = Math.min(10, chunks.size());

@@ -26,9 +26,11 @@ import { dataApi, metaApi } from "@/api/tsfile";
 import ChartPanel from "@/components/tsfile/ChartPanel.vue";
 import TableFilterPanel from "@/components/tsfile/TableFilterPanel.vue";
 import TreeFilterPanel from "@/components/tsfile/TreeFilterPanel.vue";
-import PageHeader from "@/components/layout/PageHeader.vue";
+import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
+import { formatFileSize } from "@/utils/formatSize";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 
 const route = useRoute();
 const router = useRouter();
@@ -48,7 +50,11 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, unknown>>({});
 const metadata = ref<TsFileMetadata | null>(null);
+/** 页头展示的文件大小（字节），由元数据接口带回来 */
+const fileSize = computed(() => metadata.value?.fileSize ?? 0);
 const metaError = ref<string | null>(null);
+/** 选中的序列超过 MAX_CHART_SERIES 时，被挡掉没有请求的数量 */
+const omittedSeries = ref(0);
 
 const isTableModel = computed(() => metadata.value?.tables && metadata.value.tables.length > 0);
 
@@ -74,6 +80,7 @@ watch(
       timeRange.value = undefined;
       totalPoints.value = 0;
       downsampled.value = false;
+      omittedSeries.value = 0;
       error.value = null;
       currentFilters.value = {};
       metadata.value = null;
@@ -97,9 +104,12 @@ async function loadChartData(filters: Record<string, unknown>) {
   loading.value = true;
   error.value = null;
   try {
-    const measurements = filters.measurements as string[] | undefined;
-    if (!measurements || measurements.length === 0) {
+    const selected = (filters.measurements as string[] | undefined) ?? [];
+    // 请求阶段先只带前 MAX_CHART_SERIES 个字段；真正的折线条数要到响应里才知道，见下方截断。
+    const measurements = selected.slice(0, MAX_CHART_SERIES);
+    if (measurements.length === 0) {
       chartSeries.value = [];
+      omittedSeries.value = 0;
       loading.value = false;
       return;
     }
@@ -113,7 +123,13 @@ async function loadChartData(filters: Record<string, unknown>) {
       maxPoints: 10_000,
     };
     const response = await dataApi.queryChartData(request);
-    chartSeries.value = response.series;
+    // 后端按 device×measurement 展开，一个文件可能有上千个设备，返回的序列数远多于所选字段数。
+    // 只画前 MAX_CHART_SERIES 条，并把「没发出去的字段 + 没画出来的序列」一起报给 ChartPanel。
+    const allSeries = response.series ?? [];
+    const drawnSeries = allSeries.slice(0, MAX_CHART_SERIES);
+    chartSeries.value = drawnSeries;
+    omittedSeries.value =
+      selected.length - measurements.length + (allSeries.length - drawnSeries.length);
     timeRange.value = response.timeRange;
     totalPoints.value = response.totalPoints;
     downsampled.value = response.downsampled;
@@ -128,15 +144,7 @@ function handleFilterChange(filters: Record<string, unknown>) {
   currentFilters.value = filters;
   loadChartData(filters);
 }
-function goToDataPreview() {
-  router.push(`/tsfile/data/${fileId.value}`);
-}
-function goToMetadata() {
-  router.push(`/tsfile/meta/${fileId.value}`);
-}
-function goBack() {
-  router.push("/tsfile/files");
-}
+
 function goToQuickScan() {
   try {
     const filePath = decodeFileId(fileId.value);
@@ -151,13 +159,13 @@ function goToQuickScan() {
 <template>
   <!-- 高度交给父级 flex 布局，不要用 calc(100vh - 常量) 猜页头高度 -->
   <div class="flex h-full flex-col">
-    <PageHeader :title="t('tsfile.chart.title')" :subtitle="displayFileName">
-      <template #actions>
-        <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-        <el-button @click="goToMetadata">{{ t("tsfile.metadata.title") }}</el-button>
-        <el-button type="primary" @click="goToDataPreview">{{ t("tsfile.data.title") }}</el-button>
-      </template>
-    </PageHeader>
+    <FileViewNav :file-id="fileId" active="chart" />
+    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-body">
+      <span>{{ t("tsfile.common.fileInfo", { name: displayFileName }) }}</span>
+      <span v-if="fileSize > 0" class="tnum">
+        {{ t("tsfile.common.fileSize", { size: formatFileSize(fileSize) }) }}
+      </span>
+    </div>
     <template v-if="metaError">
       <div class="tc-panel mb-3">
         <div class="flex items-start justify-between gap-3 p-4">
@@ -173,9 +181,16 @@ function goToQuickScan() {
     </template>
     <div v-else class="flex flex-col flex-1 min-h-0 gap-3">
       <div class="flex-shrink-0">
-        <TableFilterPanel v-if="isTableModel" :file-id="fileId" chart-mode @change="handleFilterChange" />
+        <TableFilterPanel
+          v-if="isTableModel"
+          :key="fileId"
+          :file-id="fileId"
+          chart-mode
+          @change="handleFilterChange"
+        />
         <TreeFilterPanel
           v-else-if="metadata && !isTableModel"
+          :key="fileId"
           :file-id="fileId"
           chart-mode
           @change="handleFilterChange"
@@ -189,6 +204,7 @@ function goToQuickScan() {
           :error="error"
           :downsampled="downsampled"
           :total-points="totalPoints"
+          :omitted-series="omittedSeries"
         />
       </div>
     </div>

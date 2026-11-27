@@ -27,6 +27,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.tsfile.viewer.config.TsFileProperties;
+import org.apache.tsfile.viewer.service.PathValidationService.PathNotAllowedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,9 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.apache.tsfile.viewer.config.TsFileProperties;
-import org.apache.tsfile.viewer.service.PathValidationService.PathNotAllowedException;
 
 /**
  * Tests for {@link PathValidationService}.

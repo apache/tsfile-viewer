@@ -25,16 +25,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.apache.tsfile.viewer.dto.ErrorSeverity;
+import org.apache.tsfile.viewer.dto.HealthStatus;
+import org.apache.tsfile.viewer.dto.ScanErrorType;
+import org.apache.tsfile.viewer.service.ScanResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.io.TempDir;
-
-import org.apache.tsfile.viewer.dto.ErrorSeverity;
-import org.apache.tsfile.viewer.dto.HealthStatus;
-import org.apache.tsfile.viewer.dto.ScanErrorType;
-import org.apache.tsfile.viewer.service.ScanResult;
 
 /**
  * Unit tests for {@link TsFileHealthChecker}.
@@ -240,13 +239,12 @@ class TsFileHealthCheckerTest {
       // Verify each error has all fields populated
       result
           .getErrors()
-          .forEach(
-              error -> {
-                assertThat(error.getErrorType()).isNotNull();
-                assertThat(error.getLocation()).isNotNull().isNotEmpty();
-                assertThat(error.getDescription()).isNotNull().isNotEmpty();
-                assertThat(error.getSeverity()).isNotNull();
-              });
+          .forEach(error -> {
+            assertThat(error.getErrorType()).isNotNull();
+            assertThat(error.getLocation()).isNotNull().isNotEmpty();
+            assertThat(error.getDescription()).isNotNull().isNotEmpty();
+            assertThat(error.getSeverity()).isNotNull();
+          });
     }
   }
 

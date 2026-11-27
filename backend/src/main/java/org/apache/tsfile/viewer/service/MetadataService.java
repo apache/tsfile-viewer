@@ -28,12 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.tsfile.file.metadata.IDeviceID;
 import org.apache.tsfile.read.TsFileSequenceReader;
 import org.apache.tsfile.viewer.config.TsFileProperties;
@@ -49,6 +43,12 @@ import org.apache.tsfile.viewer.exception.EmptyFileException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
 import org.apache.tsfile.viewer.tsfile.DeviceIndex;
 import org.apache.tsfile.viewer.tsfile.TsFileParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import jakarta.annotation.PostConstruct;
 
@@ -146,6 +146,8 @@ public class MetadataService {
 
     TsFileParser.SummaryMetadata summary = tsFileParser.parseSummary(filePath);
     TsFileMetadataDTO metadata = toSummaryDTO(fileId, summary);
+    // 磁盘大小随元数据一起返回，页头展示「文件：xxx 大小：yyy」就不必再单独请求
+    metadata.setFileSize(Files.exists(Paths.get(filePath)) ? Files.size(Paths.get(filePath)) : 0L);
 
     metadataCache.put(fileId, metadata);
     deviceIndexCache.put(fileId, summary.deviceIndex());
@@ -251,9 +253,10 @@ public class MetadataService {
     if (tableName == null) {
       return new DeviceRefDTO(deviceName, null, List.of());
     }
-    String remainder = deviceName.length() > tableName.length() + 1
-        ? deviceName.substring(tableName.length() + 1)
-        : "";
+    String remainder =
+        deviceName.length() > tableName.length() + 1
+            ? deviceName.substring(tableName.length() + 1)
+            : "";
     List<String> tagValues = remainder.isEmpty() ? List.of() : List.of(remainder.split("\\."));
     return new DeviceRefDTO(deviceName, tableName, tagValues);
   }

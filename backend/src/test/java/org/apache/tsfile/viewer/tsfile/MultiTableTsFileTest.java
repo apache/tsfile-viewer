@@ -32,14 +32,13 @@ import org.apache.tsfile.exception.write.WriteProcessException;
 import org.apache.tsfile.file.metadata.ColumnSchemaBuilder;
 import org.apache.tsfile.file.metadata.TableSchema;
 import org.apache.tsfile.read.TsFileSequenceReader;
+import org.apache.tsfile.viewer.dto.TableDTO;
 import org.apache.tsfile.write.record.Tablet;
 import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import org.apache.tsfile.viewer.dto.TableDTO;
 
 /**
  * Test multi-table support in TsFile V4.

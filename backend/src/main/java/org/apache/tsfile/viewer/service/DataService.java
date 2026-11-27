@@ -474,11 +474,9 @@ public class DataService {
         String exact = request.getTableName();
         allData =
             allData.stream()
-                .filter(
-                    row ->
-                        row.getDevice() != null
-                            && (row.getDevice().equals(exact)
-                                || row.getDevice().startsWith(prefix)))
+                .filter(row ->
+                    row.getDevice() != null
+                        && (row.getDevice().equals(exact) || row.getDevice().startsWith(prefix)))
                 .toList();
       }
 
@@ -631,20 +629,19 @@ public class DataService {
    */
   private List<DataRow> applyMeasurementFilter(List<DataRow> data, List<String> measurements) {
     return data.stream()
-        .map(
-            row -> {
-              Map<String, Object> filteredMeasurements = new HashMap<>();
-              for (String measurement : measurements) {
-                if (row.getMeasurements().containsKey(measurement)) {
-                  filteredMeasurements.put(measurement, row.getMeasurements().get(measurement));
-                }
-              }
-              return DataRow.builder()
-                  .timestamp(row.getTimestamp())
-                  .device(row.getDevice())
-                  .measurements(filteredMeasurements)
-                  .build();
-            })
+        .map(row -> {
+          Map<String, Object> filteredMeasurements = new HashMap<>();
+          for (String measurement : measurements) {
+            if (row.getMeasurements().containsKey(measurement)) {
+              filteredMeasurements.put(measurement, row.getMeasurements().get(measurement));
+            }
+          }
+          return DataRow.builder()
+              .timestamp(row.getTimestamp())
+              .device(row.getDevice())
+              .measurements(filteredMeasurements)
+              .build();
+        })
         .filter(row -> !row.getMeasurements().isEmpty())
         .toList();
   }
@@ -658,17 +655,16 @@ public class DataService {
    */
   private List<DataRow> applyValueFilter(List<DataRow> data, ValueRange valueRange) {
     return data.stream()
-        .filter(
-            row -> {
-              for (Object value : row.getMeasurements().values()) {
-                if (value instanceof Number number) {
-                  if (valueRange.contains(number.doubleValue())) {
-                    return true;
-                  }
-                }
+        .filter(row -> {
+          for (Object value : row.getMeasurements().values()) {
+            if (value instanceof Number number) {
+              if (valueRange.contains(number.doubleValue())) {
+                return true;
               }
-              return false;
-            })
+            }
+          }
+          return false;
+        })
         .toList();
   }
 

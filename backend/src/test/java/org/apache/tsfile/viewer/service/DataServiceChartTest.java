@@ -26,16 +26,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.apache.tsfile.viewer.dto.ChartDataRequest;
 import org.apache.tsfile.viewer.dto.ChartDataResponse;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader;
 import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests that building chart series keeps every plottable field.
@@ -71,8 +70,7 @@ class DataServiceChartTest {
     properties.getAllowedDirectories().add(tempDir.toString());
     properties.getQuery().setTimeoutSeconds(30);
 
-    FileService fileService =
-        new FileService(properties, new PathValidationService(properties));
+    FileService fileService = new FileService(properties, new PathValidationService(properties));
     dataService = new DataService(properties, fileService, new TsFileDataReader());
     fileId = fileService.registerFile(file.getAbsolutePath());
   }
@@ -84,14 +82,13 @@ class DataServiceChartTest {
     }
     Files.walk(tempDir)
         .sorted((a, b) -> -a.compareTo(b))
-        .forEach(
-            path -> {
-              try {
-                Files.deleteIfExists(path);
-              } catch (Exception e) {
-                // Ignore cleanup errors
-              }
-            });
+        .forEach(path -> {
+          try {
+            Files.deleteIfExists(path);
+          } catch (Exception e) {
+            // Ignore cleanup errors
+          }
+        });
   }
 
   @Test

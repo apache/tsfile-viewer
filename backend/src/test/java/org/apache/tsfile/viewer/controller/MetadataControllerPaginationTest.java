@@ -32,13 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import org.apache.tsfile.viewer.dto.ChunkDTO;
 import org.apache.tsfile.viewer.dto.DeviceRefDTO;
 import org.apache.tsfile.viewer.dto.MeasurementDTO;
@@ -46,6 +39,12 @@ import org.apache.tsfile.viewer.dto.PageDTO;
 import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
 import org.apache.tsfile.viewer.service.MetadataService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
  * Tests for the paginated metadata endpoints: parameter defaults, clamping and response shape.
@@ -99,7 +98,8 @@ class MetadataControllerPaginationTest {
 
     MvcResult result =
         mockMvc
-            .perform(get("/api/meta/file-1/row-groups").param("offset", "-7").param("limit", "100000"))
+            .perform(
+                get("/api/meta/file-1/row-groups").param("offset", "-7").param("limit", "100000"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.offset").value(0))
             .andExpect(jsonPath("$.limit").value(200))
@@ -241,6 +241,7 @@ class MetadataControllerPaginationTest {
         .maxValue("10")
         .build();
   }
+
   @Test
   @DisplayName("device measurements are returned for a known device")
   void shouldReturnDeviceMeasurements() throws Exception {
@@ -274,9 +275,7 @@ class MetadataControllerPaginationTest {
   @DisplayName("devices default to offset=0 and limit=50")
   void shouldApplyDeviceDefaults() throws Exception {
     when(metadataService.getDevicesPage("file-1", "t1", null, 0, 50))
-        .thenReturn(
-            PageDTO.of(
-                List.of(new DeviceRefDTO("t1.d1", "t1", List.of("d1"))), 3, 0, 50));
+        .thenReturn(PageDTO.of(List.of(new DeviceRefDTO("t1.d1", "t1", List.of("d1"))), 3, 0, 50));
 
     mockMvc
         .perform(get("/api/meta/file-1/devices").param("tableName", "t1"))

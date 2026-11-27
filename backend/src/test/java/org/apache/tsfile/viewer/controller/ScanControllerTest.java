@@ -31,14 +31,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
 import org.apache.tsfile.viewer.dto.DirectoryScanRequest;
 import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.FileErrorDTO;
@@ -52,6 +44,13 @@ import org.apache.tsfile.viewer.dto.ScanTaskStatus;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.TaskNotFoundException;
 import org.apache.tsfile.viewer.service.ScanService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * Unit tests for {@link ScanController}.

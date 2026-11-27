@@ -27,6 +27,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { getChartStyle } from "@/theme/charts";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 import { useTheme } from "@/composables/useTheme";
 import { normalizeToMs } from "@/utils/timestamp";
 import { LineChart } from "echarts/charts";
@@ -55,6 +56,8 @@ interface Props {
   error?: string | null;
   downsampled?: boolean;
   totalPoints?: number;
+  /** 被「前 N 条」上限挡掉、没有参与绘制的序列数 */
+  omittedSeries?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -62,14 +65,14 @@ const props = withDefaults(defineProps<Props>(), {
   error: null,
   downsampled: false,
   totalPoints: 0,
+  omittedSeries: 0,
   timeRange: undefined,
 });
 
 const { t } = useI18n();
 const { isDark } = useTheme();
 
-// 单图最多渲染的序列数，超过则拒绝绘制并提示（防止数千条折线卡死浏览器）
-const MAX_CHART_SERIES = 50;
+// 超过上限时拒绝绘制并提示（防止数千条折线卡死浏览器）；正常流程里图表页已按上限截断请求
 const tooManySeries = computed(() => props.series.length > MAX_CHART_SERIES);
 
 const chartRef = ref<HTMLDivElement | null>(null);
@@ -77,8 +80,22 @@ let chartInstance: echarts.ECharts | null = null;
 const chartHeight = ref(500);
 
 function calcChartHeight() {
-  // Fill remaining viewport: subtract header(64) + filter(~140) + chart title(40) + padding(60)
-  chartHeight.value = Math.max(400, window.innerHeight - 310);
+  // Fill the remaining viewport: header(64) + view menu(~49) + filter(~140) + chart title(40)
+  // + padding(60)。改动这里的分项时保持与视图的纵向布局同步，否则图表会顶出屏幕。
+  chartHeight.value = Math.max(400, window.innerHeight - 360);
+}
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * 时间轴标签统一显示到秒（年月日时分秒）。
+ * 原先只输出 HH:mm，跨天数据在横轴上就是同一串时刻（00:00、01:00…），看不出是哪一天。
+ */
+function formatAxisLabel(value: number): string {
+  const date = new Date(value);
+  const day = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  const clock = `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+  return `${day} ${clock}`;
 }
 
 const chartOption = computed(() => {
@@ -134,10 +151,9 @@ const chartOption = computed(() => {
       boundaryGap: false,
       axisLabel: {
         ...style.timeAxis.axisLabel,
-        formatter: (value: number) => {
-          const date = new Date(value);
-          return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-        },
+        formatter: (value: number) => formatAxisLabel(value),
+        // 标签带完整年月日时分秒后很长，密度高时会互相压住，交给 ECharts 丢掉重叠项
+        hideOverlap: true,
       },
     },
     yAxis: {
@@ -146,7 +162,13 @@ const chartOption = computed(() => {
     },
     dataZoom: [
       { type: "inside" as const, start: 0, end: 100 },
-      { type: "slider" as const, start: 0, end: 100, bottom: "8%" },
+      {
+        type: "slider" as const,
+        start: 0,
+        end: 100,
+        bottom: "8%",
+        labelFormatter: (value: number) => formatAxisLabel(value),
+      },
     ],
     series: seriesData,
   };
@@ -232,6 +254,16 @@ onUnmounted(() => {
       class="mb-2 flex-shrink-0"
     >
       {{ t("tsfile.chart.downsampledDescription") }}
+    </el-alert>
+    <el-alert
+      v-if="omittedSeries > 0"
+      type="warning"
+      :title="t('tsfile.chart.seriesTruncated', { max: MAX_CHART_SERIES, omitted: omittedSeries })"
+      show-icon
+      :closable="false"
+      class="mb-2 flex-shrink-0"
+    >
+      {{ t("tsfile.chart.seriesTruncatedDescription", { max: MAX_CHART_SERIES }) }}
     </el-alert>
     <el-alert
       v-if="error"

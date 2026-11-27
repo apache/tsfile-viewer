@@ -46,6 +46,9 @@ public class TreeNode {
   @JsonProperty("isLoaded")
   private boolean isLoaded;
 
+  /** File size in bytes. {@code null} for directories, which are omitted from the JSON. */
+  private Long size;
+
   /** Default constructor for JSON deserialization. */
   public TreeNode() {}
 
@@ -117,6 +120,14 @@ public class TreeNode {
     isLoaded = loaded;
   }
 
+  public Long getSize() {
+    return size;
+  }
+
+  public void setSize(Long size) {
+    this.size = size;
+  }
+
   /** Builder class for creating TreeNode instances. */
   public static class Builder {
     private String name;
@@ -124,6 +135,7 @@ public class TreeNode {
     private boolean isDirectory;
     private List<TreeNode> children;
     private boolean isLoaded;
+    private Long size;
 
     public Builder name(String name) {
       this.name = name;
@@ -150,6 +162,11 @@ public class TreeNode {
       return this;
     }
 
+    public Builder size(Long size) {
+      this.size = size;
+      return this;
+    }
+
     public TreeNode build() {
       TreeNode node = new TreeNode();
       node.setName(name);
@@ -157,6 +174,7 @@ public class TreeNode {
       node.setDirectory(isDirectory);
       node.setChildren(children);
       node.setLoaded(isLoaded);
+      node.setSize(size);
       return node;
     }
   }

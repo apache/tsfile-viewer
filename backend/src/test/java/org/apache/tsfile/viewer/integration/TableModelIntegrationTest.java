@@ -27,17 +27,16 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.DataReadResult;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.DataRow;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.ReadFilter;
 import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * Integration tests for Table Model TsFile data queries.
@@ -72,14 +71,13 @@ class TableModelIntegrationTest {
     if (tempDir != null && Files.exists(tempDir)) {
       Files.walk(tempDir)
           .sorted((a, b) -> -a.compareTo(b)) // Reverse order to delete files before directories
-          .forEach(
-              path -> {
-                try {
-                  Files.deleteIfExists(path);
-                } catch (Exception e) {
-                  // Ignore cleanup errors
-                }
-              });
+          .forEach(path -> {
+            try {
+              Files.deleteIfExists(path);
+            } catch (Exception e) {
+              // Ignore cleanup errors
+            }
+          });
     }
   }
 

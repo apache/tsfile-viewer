@@ -22,20 +22,19 @@ package org.apache.tsfile.viewer.tsfile;
 import java.io.IOException;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.tsfile.file.metadata.TableSchema;
 import org.apache.tsfile.read.v4.ITsFileReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads the table schemas of a V4 TsFile without failing on tree model files.
  *
  * <p>Callers use an empty result to decide that the file is a tree model file and to fall back to
  * {@link org.apache.tsfile.read.TsFileSequenceReader}. {@code ITsFileReader.getAllTableSchema()}
- * does not honour that contract: on a tree model file the underlying {@code
- * DeviceTableModelReader} dereferences a null table schema map and throws {@link
- * NullPointerException} instead of returning an empty list.
+ * does not honour that contract: on a tree model file the underlying {@code DeviceTableModelReader}
+ * dereferences a null table schema map and throws {@link NullPointerException} instead of returning
+ * an empty list.
  */
 public final class TableSchemaSupport {
 

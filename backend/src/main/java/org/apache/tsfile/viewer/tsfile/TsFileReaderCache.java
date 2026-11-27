@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.tsfile.read.TsFileSequenceReader;
+import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,6 @@ import org.springframework.stereotype.Component;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.tsfile.viewer.config.TsFileProperties;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;

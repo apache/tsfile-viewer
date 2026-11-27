@@ -1,0 +1,16 @@
+# pnpm 12 的工程设置只从 pnpm-workspace.yaml 读取（package.json 里的 pnpm 字段已被忽略）。
+#
+# allowBuilds: sass 1.108 起依赖 @parcel/watcher，它的安装脚本默认被拦下（ERR_PNPM_IGNORED_BUILDS），
+# 这里显式放行。
+allowBuilds:
+  '@parcel/watcher': true
+
+# overrides: 传递依赖里的已知漏洞，都是构建期工具链（不进浏览器产物）。
+# 上游父包还没放开修复版本，这里固定到已修复的最小版本。
+overrides:
+  shell-quote: "^1.9.0"
+  tinypool: "^2.1.2"
+  picomatch: "^4.0.4"
+  source-map-js: "^1.2.2"
+  postcss-selector-parser: "^6.1.5"
+  "@babel/core": "^7.29.6"

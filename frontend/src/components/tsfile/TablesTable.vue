@@ -45,6 +45,15 @@ const { t } = useI18n();
 
 const activeKeys = ref<string[]>([]);
 
+/**
+ * 只渲染已展开面板里的两张表。
+ *
+ * el-collapse-item 用 v-show 隐藏折叠内容，插槽里的 el-table 依然会挂载；表多的文件
+ * （例如 225 张表的 tsfile）一开页就要建出几百个 el-table，主线程直接卡住。
+ * 所以内容加 v-if：收起时连 el-table 都不创建。
+ */
+const expandedKeys = computed(() => new Set(activeKeys.value));
+
 /* ------------------------------------------------------------------ *
  * 表格高度：按需分配
  *
@@ -169,13 +178,12 @@ onBeforeUnmount(() => {
 // 折叠展开与数据变化都会改变第一个分区的位置，需要重新实测
 watch([activeKeys, () => props.tables], () => void nextTick(measure), { deep: true });
 
-// Auto-expand all panels when tables data arrives
+// 默认只展开第一张表：表多的文件全部展开既没有可读性，也会把折叠区撑到几万像素高。
+// 表集合变化（换文件）时同样重置，否则会残留上一个文件的展开项、看起来一张都没展开。
 watch(
   () => props.tables,
   (tables) => {
-    if (tables.length > 0 && activeKeys.value.length === 0) {
-      activeKeys.value = tables.map((tbl) => tbl.tableName);
-    }
+    activeKeys.value = tables.length > 0 ? [tables[0].tableName] : [];
   },
   { immediate: true },
 );
@@ -208,93 +216,95 @@ watch(
             </span>
           </template>
 
-          <div class="space-y-4">
-            <!-- 标签列 -->
-            <div data-section>
-              <h4 class="mb-2 text-xs font-normal uppercase tracking-wider text-text-body">
-                {{ t("tsfile.metadata.tagColumnsDesc") }}
-              </h4>
-              <div v-if="table.tagColumns.length > 0" class="tc-table-card">
-                <el-table
-                  v-bind="tableStyleProps"
-                  :data="table.tagColumns"
-                  :max-height="sectionHeight(table, 'tag')"
-                  row-key="name"
-                  size="small"
-                  border
-                >
-                  <el-table-column
-                    :label="t('tsfile.metadata.columnName')"
-                    prop="name"
-                    show-overflow-tooltip
-                  />
-                  <el-table-column :label="t('tsfile.metadata.dataType')" :width="120">
-                    <template #default="{ row }">
-                      <el-tag :type="getDataTypeTagType(row.dataType)" size="small">
-                        {{ row.dataType }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column
-                    :label="t('tsfile.metadata.encoding')"
-                    prop="encoding"
-                    :width="120"
-                  />
-                  <el-table-column
-                    :label="t('tsfile.metadata.compression')"
-                    prop="compression"
-                    :width="120"
-                  />
-                </el-table>
+          <template v-if="expandedKeys.has(table.tableName)">
+            <div class="space-y-4">
+              <!-- 标签列 -->
+              <div data-section>
+                <h4 class="mb-2 text-xs font-normal uppercase tracking-wider text-text-body">
+                  {{ t("tsfile.metadata.tagColumnsDesc") }}
+                </h4>
+                <div v-if="table.tagColumns.length > 0" class="tc-table-card">
+                  <el-table
+                    v-bind="tableStyleProps"
+                    :data="table.tagColumns"
+                    :max-height="sectionHeight(table, 'tag')"
+                    row-key="name"
+                    size="small"
+                    border
+                  >
+                    <el-table-column
+                      :label="t('tsfile.metadata.columnName')"
+                      prop="name"
+                      show-overflow-tooltip
+                    />
+                    <el-table-column :label="t('tsfile.metadata.dataType')" :width="120">
+                      <template #default="{ row }">
+                        <el-tag :type="getDataTypeTagType(row.dataType)" size="small">
+                          {{ row.dataType }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                      :label="t('tsfile.metadata.encoding')"
+                      prop="encoding"
+                      :width="120"
+                    />
+                    <el-table-column
+                      :label="t('tsfile.metadata.compression')"
+                      prop="compression"
+                      :width="120"
+                    />
+                  </el-table>
+                </div>
+                <div v-else class="text-sm text-text-body">
+                  {{ t("tsfile.metadata.noTagColumns") }}
+                </div>
               </div>
-              <div v-else class="text-sm text-text-body">
-                {{ t("tsfile.metadata.noTagColumns") }}
-              </div>
-            </div>
 
-            <!-- 字段列 -->
-            <div data-section>
-              <h4 class="mb-2 text-xs font-normal uppercase tracking-wider text-text-body">
-                {{ t("tsfile.metadata.fieldColumnsDesc") }}
-              </h4>
-              <div v-if="table.fieldColumns.length > 0" class="tc-table-card">
-                <el-table
-                  v-bind="tableStyleProps"
-                  :data="table.fieldColumns"
-                  :max-height="sectionHeight(table, 'field')"
-                  row-key="name"
-                  size="small"
-                  border
-                >
-                  <el-table-column
-                    :label="t('tsfile.metadata.columnName')"
-                    prop="name"
-                    show-overflow-tooltip
-                  />
-                  <el-table-column :label="t('tsfile.metadata.dataType')" :width="120">
-                    <template #default="{ row }">
-                      <el-tag :type="getDataTypeTagType(row.dataType)" size="small">
-                        {{ row.dataType }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column
-                    :label="t('tsfile.metadata.encoding')"
-                    prop="encoding"
-                    :width="120"
-                  />
-                  <el-table-column
-                    :label="t('tsfile.metadata.compression')"
-                    prop="compression"
-                    :width="120"
-                  />
-                </el-table>
-              </div>
-              <div v-else class="text-sm text-text-body">
-                {{ t("tsfile.metadata.noFieldColumns") }}
+              <!-- 字段列 -->
+              <div data-section>
+                <h4 class="mb-2 text-xs font-normal uppercase tracking-wider text-text-body">
+                  {{ t("tsfile.metadata.fieldColumnsDesc") }}
+                </h4>
+                <div v-if="table.fieldColumns.length > 0" class="tc-table-card">
+                  <el-table
+                    v-bind="tableStyleProps"
+                    :data="table.fieldColumns"
+                    :max-height="sectionHeight(table, 'field')"
+                    row-key="name"
+                    size="small"
+                    border
+                  >
+                    <el-table-column
+                      :label="t('tsfile.metadata.columnName')"
+                      prop="name"
+                      show-overflow-tooltip
+                    />
+                    <el-table-column :label="t('tsfile.metadata.dataType')" :width="120">
+                      <template #default="{ row }">
+                        <el-tag :type="getDataTypeTagType(row.dataType)" size="small">
+                          {{ row.dataType }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                      :label="t('tsfile.metadata.encoding')"
+                      prop="encoding"
+                      :width="120"
+                    />
+                    <el-table-column
+                      :label="t('tsfile.metadata.compression')"
+                      prop="compression"
+                      :width="120"
+                    />
+                  </el-table>
+                </div>
+                <div v-else class="text-sm text-text-body">
+                  {{ t("tsfile.metadata.noFieldColumns") }}
+                </div>
               </div>
             </div>
-          </div>
+          </template>
         </el-collapse-item>
       </el-collapse>
 

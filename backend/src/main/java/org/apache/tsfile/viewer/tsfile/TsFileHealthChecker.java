@@ -46,14 +46,13 @@ import org.apache.tsfile.read.common.BatchData;
 import org.apache.tsfile.read.reader.page.PageReader;
 import org.apache.tsfile.read.reader.page.TimePageReader;
 import org.apache.tsfile.read.reader.page.ValuePageReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.tsfile.viewer.dto.ErrorSeverity;
 import org.apache.tsfile.viewer.dto.HealthStatus;
 import org.apache.tsfile.viewer.dto.ScanErrorType;
 import org.apache.tsfile.viewer.service.FileError;
 import org.apache.tsfile.viewer.service.ScanResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Core health-checking logic for TsFile files.
@@ -290,7 +289,8 @@ public class TsFileHealthChecker {
             long chunkOffset = reader.position();
             ChunkHeader header = reader.readChunkHeader(marker);
             int chunkIndex = chunkCursor.find(chunkOffset - Byte.BYTES);
-            String metadataMeasurement = chunkIndex >= 0 ? chunkCursor.measurement(chunkIndex) : null;
+            String metadataMeasurement =
+                chunkIndex >= 0 ? chunkCursor.measurement(chunkIndex) : null;
 
             // Validate chunk offset matches metadata
             if (chunkIndex >= 0 && !metadataMeasurement.equals(header.getMeasurementID())) {
@@ -654,10 +654,9 @@ public class TsFileHealthChecker {
 
     boolean hasErrorOrCritical =
         errors.stream()
-            .anyMatch(
-                e ->
-                    e.getSeverity() == ErrorSeverity.ERROR
-                        || e.getSeverity() == ErrorSeverity.CRITICAL);
+            .anyMatch(e ->
+                e.getSeverity() == ErrorSeverity.ERROR
+                    || e.getSeverity() == ErrorSeverity.CRITICAL);
 
     return hasErrorOrCritical ? HealthStatus.ERROR : HealthStatus.WARNING;
   }

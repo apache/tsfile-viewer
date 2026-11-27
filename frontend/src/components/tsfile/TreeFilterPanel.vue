@@ -33,6 +33,7 @@ import { ElSelectV2 } from "element-plus";
 import { metaApi } from "@/api/tsfile";
 import { readPagedRange } from "@/composables/usePagedList";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 
 interface Props {
   fileId: string;
@@ -133,16 +134,14 @@ const measurementOptions = computed(() => {
 
 const numericTypes = new Set(['INT32', 'INT64', 'FLOAT', 'DOUBLE', 'BOOLEAN']);
 
-// 图表模式下默认展示的序列数上限（避免一次性绘制数千条折线导致页面卡死）
-const CHART_DEFAULT_SERIES = 8;
-
-// 取前 N 个数值测点，作为图表默认序列
+// 图表模式下默认选中前 MAX_CHART_SERIES 个数值测点：测点再多也只查这么多条序列，
+// 与图表一次最多绘制的序列数保持一致
 function defaultChartMeasurements(): string[] {
   const source = deviceMeasurements.value ?? metadata.value?.measurements ?? [];
   return source
     .filter((m) => m.name && numericTypes.has(m.dataType?.toUpperCase() || ''))
     .map((m) => m.name)
-    .slice(0, CHART_DEFAULT_SERIES);
+    .slice(0, MAX_CHART_SERIES);
 }
 
 const measurementSelectOptions = computed(() => {
@@ -173,6 +172,13 @@ async function loadMetadata() {
   if (!props.fileId) return;
   loading.value = true;
   error.value = null;
+  // 换文件时先清掉上一个文件的筛选：时间范围/高级条件不会自己过期，
+  // 留着就会带着旧文件的设定去查新文件
+  selectedDevice.value = "";
+  selectedMeasurements.value = [];
+  timeRange.value = null;
+  selectedQuickRange.value = null;
+  advancedConditions.value = [];
   try {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;

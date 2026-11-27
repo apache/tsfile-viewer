@@ -38,6 +38,7 @@ public class DataPreviewResponse {
    * counts must be derived from {@code offset}/{@code limit}/{@code hasMore} instead.
    */
   private int total;
+
   private int limit;
   private int offset;
   private boolean hasMore;

@@ -29,13 +29,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import org.apache.tsfile.viewer.dto.DeviceListResponse;
 import org.apache.tsfile.viewer.dto.DeviceListResponse.DeviceInfo;
 import org.apache.tsfile.viewer.dto.TableDataRequest;
@@ -43,6 +36,12 @@ import org.apache.tsfile.viewer.dto.TableDataResponse;
 import org.apache.tsfile.viewer.dto.TableListResponse;
 import org.apache.tsfile.viewer.dto.TableListResponse.TableInfo;
 import org.apache.tsfile.viewer.service.TableService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 /**
  * Unit tests for TableController.

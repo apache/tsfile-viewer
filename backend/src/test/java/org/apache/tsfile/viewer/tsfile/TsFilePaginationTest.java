@@ -34,6 +34,9 @@ import org.apache.tsfile.file.metadata.ColumnSchema;
 import org.apache.tsfile.file.metadata.ColumnSchemaBuilder;
 import org.apache.tsfile.file.metadata.TableSchema;
 import org.apache.tsfile.read.TsFileSequenceReader;
+import org.apache.tsfile.viewer.dto.ChunkDTO;
+import org.apache.tsfile.viewer.dto.PageDTO;
+import org.apache.tsfile.viewer.dto.RowGroupDTO;
 import org.apache.tsfile.write.record.Tablet;
 import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
@@ -41,10 +44,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import org.apache.tsfile.viewer.dto.ChunkDTO;
-import org.apache.tsfile.viewer.dto.PageDTO;
-import org.apache.tsfile.viewer.dto.RowGroupDTO;
 
 /**
  * Tests for incremental RowGroup/Chunk paging against a real TsFile.
@@ -68,7 +67,8 @@ class TsFilePaginationTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    tsFile = createTableModelTsFile(tempDir.resolve("pagination.tsfile"), DEVICES, MEASUREMENTS, ROWS);
+    tsFile =
+        createTableModelTsFile(tempDir.resolve("pagination.tsfile"), DEVICES, MEASUREMENTS, ROWS);
   }
 
   @Test
@@ -89,7 +89,8 @@ class TsFilePaginationTest {
     assertThat(index.deviceCount()).isEqualTo(DEVICES).isEqualTo(allRowGroups.size());
     assertThat(index.chunkCount()).isEqualTo(allChunks.size());
     for (int position = 0; position < index.deviceCount(); position++) {
-      assertThat(index.chunkCountOf(position)).isEqualTo(allRowGroups.get(position).getChunkCount());
+      assertThat(index.chunkCountOf(position))
+          .isEqualTo(allRowGroups.get(position).getChunkCount());
     }
   }
 

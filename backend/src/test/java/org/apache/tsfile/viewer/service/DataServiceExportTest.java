@@ -104,14 +104,13 @@ class DataServiceExportTest {
     }
     Files.walk(tempDir)
         .sorted((a, b) -> -a.compareTo(b))
-        .forEach(
-            path -> {
-              try {
-                Files.deleteIfExists(path);
-              } catch (Exception e) {
-                // Ignore cleanup errors
-              }
-            });
+        .forEach(path -> {
+          try {
+            Files.deleteIfExists(path);
+          } catch (Exception e) {
+            // Ignore cleanup errors
+          }
+        });
   }
 
   @Test

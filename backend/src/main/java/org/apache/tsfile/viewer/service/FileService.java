@@ -24,22 +24,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.tsfile.viewer.config.TsFileProperties;
 import org.apache.tsfile.viewer.dto.FileInfo;
 import org.apache.tsfile.viewer.dto.TreeNode;
@@ -47,6 +42,13 @@ import org.apache.tsfile.viewer.dto.UploadResponse;
 import org.apache.tsfile.viewer.exception.AccessDeniedException;
 import org.apache.tsfile.viewer.exception.InvalidFileException;
 import org.apache.tsfile.viewer.exception.TsFileNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Service for file management operations.
@@ -126,48 +128,90 @@ public class FileService {
    * @return TreeNode representing the path
    */
   private TreeNode buildTreeNode(Path path, boolean loadChildren) throws IOException {
+    return buildTreeNode(path, Files.readAttributes(path, BasicFileAttributes.class), loadChildren);
+  }
+
+  /**
+   * Builds a TreeNode from already-read file attributes.
+   *
+   * <p>Attributes are passed in so a directory listing does not have to stat every child twice:
+   * once for sorting and once for building the node.
+   *
+   * @param path the file system path
+   * @param attributes attributes of {@code path}, already read by the caller
+   * @param loadChildren whether to load children for directories
+   * @return TreeNode representing the path
+   */
+  private TreeNode buildTreeNode(Path path, BasicFileAttributes attributes, boolean loadChildren)
+      throws IOException {
     String name = path.getFileName() != null ? path.getFileName().toString() : path.toString();
-    boolean isDirectory = Files.isDirectory(path);
+    boolean isDirectory = attributes.isDirectory();
 
     TreeNode node =
         TreeNode.builder()
             .name(name)
             .path(path.toString())
             .directory(isDirectory)
+            .size(isDirectory ? null : attributes.size())
             .loaded(loadChildren || !isDirectory)
             .build();
 
     if (isDirectory && loadChildren) {
-      List<TreeNode> children = new ArrayList<>();
-      try (Stream<Path> stream = Files.list(path)) {
-        stream
-            .sorted(
-                (p1, p2) -> {
-                  // Directories first, then files
-                  boolean d1 = Files.isDirectory(p1);
-                  boolean d2 = Files.isDirectory(p2);
-                  if (d1 != d2) {
-                    return d1 ? -1 : 1;
-                  }
-                  return p1.getFileName()
-                      .toString()
-                      .compareToIgnoreCase(p2.getFileName().toString());
-                })
-            .filter(this::isVisibleFile)
-            .forEach(
-                childPath -> {
-                  try {
-                    // Don't load grandchildren (lazy loading)
-                    children.add(buildTreeNode(childPath, false));
-                  } catch (IOException e) {
-                    logger.warn("Failed to read child path: {}", childPath, e);
-                  }
-                });
-      }
-      node.setChildren(children);
+      node.setChildren(listChildren(path));
     }
 
     return node;
+  }
+
+  /**
+   * Lists the visible children of a directory: directories first, then files by name.
+   *
+   * <p>Every entry is stat-ed exactly once up front. The previous implementation called {@code
+   * Files.isDirectory} inside the sort comparator, i.e. O(n log n) syscalls per listing.
+   *
+   * @param directory the directory to list
+   * @return visible child nodes, grandchildren not loaded (lazy loading)
+   */
+  private List<TreeNode> listChildren(Path directory) throws IOException {
+    List<Path> childPaths;
+    try (Stream<Path> stream = Files.list(directory)) {
+      childPaths = stream.toList();
+    }
+
+    List<ChildEntry> entries = new ArrayList<>(childPaths.size());
+    for (Path childPath : childPaths) {
+      BasicFileAttributes attributes;
+      try {
+        attributes = Files.readAttributes(childPath, BasicFileAttributes.class);
+      } catch (IOException e) {
+        // A vanished or unreadable entry must not break the whole listing.
+        logger.warn("Failed to read child path: {}", childPath, e);
+        continue;
+      }
+      if (isVisibleFile(childPath, attributes)) {
+        entries.add(new ChildEntry(childPath, attributes));
+      }
+    }
+
+    entries.sort(
+        Comparator.comparing((ChildEntry entry) -> !entry.isDirectory())
+            .thenComparing(
+                entry -> entry.path().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
+
+    List<TreeNode> children = new ArrayList<>(entries.size());
+    for (ChildEntry entry : entries) {
+      // Don't load grandchildren (lazy loading)
+      children.add(buildTreeNode(entry.path(), entry.attributes(), false));
+    }
+    return children;
+  }
+
+  /** A directory entry together with the file attributes already read for it. */
+  private record ChildEntry(Path path, BasicFileAttributes attributes) {
+
+    boolean isDirectory() {
+      return attributes.isDirectory();
+    }
   }
 
   /**
@@ -176,16 +220,17 @@ public class FileService {
    * <p>Filters out hidden files and shows only directories and .tsfile files.
    *
    * @param path the path to check
+   * @param attributes attributes of {@code path}, so this check costs no extra syscall
    * @return true if the file should be visible
    */
-  private boolean isVisibleFile(Path path) {
+  private boolean isVisibleFile(Path path, BasicFileAttributes attributes) {
     try {
       if (Files.isHidden(path)) {
         return false;
       }
       String fileName = path.getFileName().toString();
       // Show directories and .tsfile files
-      return Files.isDirectory(path) || fileName.toLowerCase().endsWith(TSFILE_EXTENSION);
+      return attributes.isDirectory() || fileName.toLowerCase().endsWith(TSFILE_EXTENSION);
     } catch (IOException e) {
       return false;
     }

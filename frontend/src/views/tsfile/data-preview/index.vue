@@ -27,9 +27,10 @@ import { dataApi, metaApi } from "@/api/tsfile";
 import DataTable from "@/components/tsfile/DataTable.vue";
 import TableFilterPanel from "@/components/tsfile/TableFilterPanel.vue";
 import TreeFilterPanel from "@/components/tsfile/TreeFilterPanel.vue";
-import PageHeader from "@/components/layout/PageHeader.vue";
+import FileViewNav from "@/components/tsfile/FileViewNav.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
+import { formatFileSize } from "@/utils/formatSize";
 
 const route = useRoute();
 const router = useRouter();
@@ -63,6 +64,8 @@ const error = ref<string | null>(null);
 const warnings = ref<string[]>([]);
 const currentFilters = ref<Record<string, unknown>>({});
 const metadata = ref<TsFileMetadata | null>(null);
+/** 页头展示的文件大小（字节），由元数据接口带回来 */
+const fileSize = computed(() => metadata.value?.fileSize ?? 0);
 const metaError = ref<string | null>(null);
 
 const tagColumnNames = computed(() => {
@@ -180,15 +183,6 @@ function downloadFile(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function goToChart() {
-  router.push(`/tsfile/chart/${fileId.value}`);
-}
-function goToMetadata() {
-  router.push(`/tsfile/meta/${fileId.value}`);
-}
-function goBack() {
-  router.push("/tsfile/files");
-}
 function goToQuickScan() {
   try {
     const filePath = decodeFileId(fileId.value);
@@ -202,13 +196,13 @@ function goToQuickScan() {
 
 <template>
   <div class="flex flex-col h-full">
-    <PageHeader :title="t('tsfile.data.title')" :subtitle="displayFileName">
-      <template #actions>
-        <el-button @click="goBack">{{ t("tsfile.common.back") }}</el-button>
-        <el-button @click="goToMetadata">{{ t("tsfile.metadata.title") }}</el-button>
-        <el-button type="primary" @click="goToChart">{{ t("tsfile.chart.title") }}</el-button>
-      </template>
-    </PageHeader>
+    <FileViewNav :file-id="fileId" active="data" />
+    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-body">
+      <span>{{ t("tsfile.common.fileInfo", { name: displayFileName }) }}</span>
+      <span v-if="fileSize > 0" class="tnum">
+        {{ t("tsfile.common.fileSize", { size: formatFileSize(fileSize) }) }}
+      </span>
+    </div>
     <template v-if="metaError">
       <div class="tc-panel mb-3">
         <div class="flex items-start justify-between gap-3 p-4">
@@ -224,9 +218,14 @@ function goToQuickScan() {
     </template>
     <template v-else>
     <div class="flex-shrink-0">
-      <TableFilterPanel v-if="isTableModel" :file-id="fileId" @change="handleFilterChange" />
+      <TableFilterPanel
+        v-if="isTableModel"
+        :file-id="fileId"
+        @change="handleFilterChange"
+      />
       <TreeFilterPanel
         v-else-if="metadata && !isTableModel"
+        :key="fileId"
         :file-id="fileId"
         @change="handleFilterChange"
       />

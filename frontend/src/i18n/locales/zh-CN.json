@@ -34,6 +34,8 @@
       "apply": "应用",
       "close": "关闭",
       "back": "返回",
+      "fileInfo": "文件：{name}",
+      "fileSize": "大小：{size}",
       "next": "下一步",
       "previous": "上一步",
       "noData": "暂无数据",
@@ -249,7 +251,9 @@
       "downsampledDescription": "为保证性能，数据已自动降采样显示。如需查看完整数据，请缩小时间范围或减少测点数量。",
       "noData": "暂无图表数据，请选择测点并应用筛选条件",
       "tooManySeries": "序列过多，已暂停绘制（{count} 条，上限 {max} 条）",
-      "tooManySeriesDescription": "一次性绘制过多折线会导致页面卡顿甚至崩溃。请在上方筛选器中减少所选字段/设备，将序列数降到 {max} 条以内后再查看。"
+      "tooManySeriesDescription": "一次性绘制过多折线会导致页面卡顿甚至崩溃。请在上方筛选器中减少所选字段/设备，将序列数降到 {max} 条以内后再查看。",
+      "seriesTruncated": "已默认只展示前 {max} 条序列（另有 {omitted} 条未展示）",
+      "seriesTruncatedDescription": "图表一次最多绘制 {max} 条折线，超出的部分已自动忽略。一条折线对应「设备 + 字段」，想查看其它序列，请在上方筛选器里减少所选设备或字段后重新应用。"
     },
     "scan": {
       "title": "文件扫描",

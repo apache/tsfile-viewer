@@ -21,6 +21,12 @@ package org.apache.tsfile.viewer.controller;
 
 import java.util.Map;
 
+import org.apache.tsfile.viewer.dto.DirectoryScanRequest;
+import org.apache.tsfile.viewer.dto.FileScanRequest;
+import org.apache.tsfile.viewer.dto.ScanReportDTO;
+import org.apache.tsfile.viewer.dto.ScanResultDTO;
+import org.apache.tsfile.viewer.dto.ScanTaskDTO;
+import org.apache.tsfile.viewer.service.ScanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -34,13 +40,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import org.apache.tsfile.viewer.dto.DirectoryScanRequest;
-import org.apache.tsfile.viewer.dto.FileScanRequest;
-import org.apache.tsfile.viewer.dto.ScanReportDTO;
-import org.apache.tsfile.viewer.dto.ScanResultDTO;
-import org.apache.tsfile.viewer.dto.ScanTaskDTO;
-import org.apache.tsfile.viewer.service.ScanService;
 
 import jakarta.validation.Valid;
 

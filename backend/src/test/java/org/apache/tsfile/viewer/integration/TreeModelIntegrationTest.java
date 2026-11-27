@@ -27,17 +27,16 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.DataReadResult;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.DataRow;
 import org.apache.tsfile.viewer.tsfile.TsFileDataReader.ReadFilter;
 import org.apache.tsfile.viewer.tsfile.TsFileTestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * Integration tests for Tree Model TsFile data queries.
@@ -75,14 +74,13 @@ class TreeModelIntegrationTest {
     if (tempDir != null && Files.exists(tempDir)) {
       Files.walk(tempDir)
           .sorted((a, b) -> -a.compareTo(b))
-          .forEach(
-              path -> {
-                try {
-                  Files.deleteIfExists(path);
-                } catch (Exception e) {
-                  // Ignore cleanup errors
-                }
-              });
+          .forEach(path -> {
+            try {
+              Files.deleteIfExists(path);
+            } catch (Exception e) {
+              // Ignore cleanup errors
+            }
+          });
     }
   }
 
@@ -441,8 +439,7 @@ class TreeModelIntegrationTest {
       String measurement = all.getData().get(0).getValues().keySet().iterator().next();
 
       DataReadResult filtered =
-          dataReader.readDataByTimeRange(
-              testFile, null, null, 1000, 0, null, List.of(measurement));
+          dataReader.readDataByTimeRange(testFile, null, null, 1000, 0, null, List.of(measurement));
 
       assertThat(filtered.getData()).isNotEmpty();
       for (DataRow row : filtered.getData()) {

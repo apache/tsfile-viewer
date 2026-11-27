@@ -116,11 +116,10 @@ class TsFileHealthCheckerPropertyTest {
     Arbitrary<List<FileError>> errorLists = fileErrors().list().ofMaxSize(10);
 
     return Combinators.combine(filePaths, fileSizes, errorLists, durations)
-        .as(
-            (path, size, errors, duration) -> {
-              HealthStatus status = deriveHealthStatus(errors);
-              return new ScanResult(path, size, status, errors, duration);
-            });
+        .as((path, size, errors, duration) -> {
+          HealthStatus status = deriveHealthStatus(errors);
+          return new ScanResult(path, size, status, errors, duration);
+        });
   }
 
   private Arbitrary<FileError> fileErrors() {
@@ -137,11 +136,10 @@ class TsFileHealthCheckerPropertyTest {
             .map(s -> "Error description: " + s);
 
     return Combinators.combine(errorTypes, locations, descriptions)
-        .as(
-            (errorType, location, description) -> {
-              ErrorSeverity severity = EXPECTED_SEVERITY_MAP.get(errorType);
-              return new FileError(errorType, location, description, severity);
-            });
+        .as((errorType, location, description) -> {
+          ErrorSeverity severity = EXPECTED_SEVERITY_MAP.get(errorType);
+          return new FileError(errorType, location, description, severity);
+        });
   }
 
   /**
@@ -154,10 +152,9 @@ class TsFileHealthCheckerPropertyTest {
     }
     boolean hasErrorOrCritical =
         errors.stream()
-            .anyMatch(
-                e ->
-                    e.getSeverity() == ErrorSeverity.ERROR
-                        || e.getSeverity() == ErrorSeverity.CRITICAL);
+            .anyMatch(e ->
+                e.getSeverity() == ErrorSeverity.ERROR
+                    || e.getSeverity() == ErrorSeverity.CRITICAL);
     return hasErrorOrCritical ? HealthStatus.ERROR : HealthStatus.WARNING;
   }
 }

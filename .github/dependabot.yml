@@ -48,3 +48,45 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+
+  # 前端（Vue + Element Plus）与后端（Spring Boot）也纳入 Dependabot：
+  # ASF 只在 github-actions 上强制要求它，其余生态是可选但受支持的（配置与普通 GitHub 仓库一致）。
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 4
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    groups:
+      npm:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: maven
+    directory: "/backend"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 4
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    groups:
+      maven:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      maven-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
