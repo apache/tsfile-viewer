@@ -35,6 +35,7 @@ import { ElSelectV2 } from "element-plus";
 
 import { metaApi } from "@/api/tsfile";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 
 interface Props {
   fileId: string;
@@ -154,6 +155,15 @@ const measurementOptions = computed(() => {
 
 const numericTypes = new Set(['INT32', 'INT64', 'FLOAT', 'DOUBLE', 'BOOLEAN']);
 
+// 图表模式下默认选中前 MAX_CHART_SERIES 个数值字段：字段再多也只查这么多条序列，
+// 与图表一次最多绘制的序列数保持一致
+function defaultChartMeasurements(table: Table | undefined): string[] {
+  if (!table) return [];
+  return table.fieldColumns
+    .filter((c) => c.name && numericTypes.has(c.dataType?.toUpperCase() || ''))
+    .map((c) => c.name)
+    .slice(0, MAX_CHART_SERIES);
+}
 
 const measurementSelectOptions = computed(() => {
   if (!props.chartMode) {
@@ -189,12 +199,20 @@ async function loadMetadata() {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;
 
-    // 自动选择第一个表；图表模式不再自动挑测点、也不再自动查询，
-    // 否则用户「什么都没选」却看到已套用的条件（换文件时尤其容易误判成带了上一个文件的条件）
+    // 自动选择第一个表
     if (tableOptions.value.length > 0) {
       const firstTable = tableOptions.value[0];
       if (firstTable) {
         selectedTable.value = firstTable.value;
+        // In chart mode, auto-select all numeric fields and trigger query
+        if (props.chartMode) {
+          const table = metadata.value?.tables?.find((t) => t.tableName === firstTable.value);
+          if (table) {
+            // 默认仅展示前若干条数值序列，避免一次性绘制数千条折线
+            selectedMeasurements.value = defaultChartMeasurements(table);
+            applyFilters();
+          }
+        }
       }
     }
   } catch (error_: unknown) {
@@ -262,6 +280,11 @@ function applyFilters() {
     filters.devices = selectedDevices.value;
   }
 
+  // In chart mode, default to the first few numeric fields if none selected
+  if (props.chartMode && selectedMeasurements.value.length === 0 && selectedTable.value) {
+    const table = metadata.value?.tables?.find((t) => t.tableName === selectedTable.value);
+    selectedMeasurements.value = defaultChartMeasurements(table);
+  }
 
   if (selectedMeasurements.value.length > 0) {
     filters.measurements = selectedMeasurements.value;

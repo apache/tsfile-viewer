@@ -33,6 +33,7 @@ import { ElSelectV2 } from "element-plus";
 import { metaApi } from "@/api/tsfile";
 import { readPagedRange } from "@/composables/usePagedList";
 import AdvancedFilterDialog from "@/components/tsfile/AdvancedFilterDialog.vue";
+import { MAX_CHART_SERIES } from "@/utils/chartLimits";
 
 interface Props {
   fileId: string;
@@ -133,6 +134,15 @@ const measurementOptions = computed(() => {
 
 const numericTypes = new Set(['INT32', 'INT64', 'FLOAT', 'DOUBLE', 'BOOLEAN']);
 
+// 图表模式下默认选中前 MAX_CHART_SERIES 个数值测点：测点再多也只查这么多条序列，
+// 与图表一次最多绘制的序列数保持一致
+function defaultChartMeasurements(): string[] {
+  const source = deviceMeasurements.value ?? metadata.value?.measurements ?? [];
+  return source
+    .filter((m) => m.name && numericTypes.has(m.dataType?.toUpperCase() || ''))
+    .map((m) => m.name)
+    .slice(0, MAX_CHART_SERIES);
+}
 
 const measurementSelectOptions = computed(() => {
   if (!props.chartMode) {
@@ -179,7 +189,11 @@ async function loadMetadata() {
       // 测点选项跟随设备，默认序列也必须基于该设备的测点
       await loadDeviceMeasurements(selectedDevice.value);
     }
-
+    // In chart mode, default to the first few numeric fields and trigger query
+    if (props.chartMode && metadata.value?.measurements) {
+      selectedMeasurements.value = defaultChartMeasurements();
+      applyFilters();
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : t("tsfile.common.error");
   } finally {
@@ -206,6 +220,10 @@ function selectQuickTimeRange(range: string) {
 function applyFilters() {
   const filters: Record<string, unknown> = {};
   if (selectedDevice.value) filters.devices = [selectedDevice.value];
+  // In chart mode, default to the first few numeric fields if none selected
+  if (props.chartMode && selectedMeasurements.value.length === 0 && metadata.value?.measurements) {
+    selectedMeasurements.value = defaultChartMeasurements();
+  }
   if (selectedMeasurements.value.length > 0) filters.measurements = selectedMeasurements.value;
   if (timeRange.value) {
     filters.startTime = dayjs(timeRange.value[0]).valueOf();
