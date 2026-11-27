@@ -146,6 +146,8 @@ public class MetadataService {
 
     TsFileParser.SummaryMetadata summary = tsFileParser.parseSummary(filePath);
     TsFileMetadataDTO metadata = toSummaryDTO(fileId, summary);
+    // 磁盘大小随元数据一起返回，页头展示「文件：xxx 大小：yyy」就不必再单独请求
+    metadata.setFileSize(Files.exists(Paths.get(filePath)) ? Files.size(Paths.get(filePath)) : 0L);
 
     metadataCache.put(fileId, metadata);
     deviceIndexCache.put(fileId, summary.deviceIndex());
