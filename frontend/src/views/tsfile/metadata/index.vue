@@ -29,9 +29,9 @@ import RowGroupsTable from "@/components/tsfile/RowGroupsTable.vue";
 import ChunksTable from "@/components/tsfile/ChunksTable.vue";
 import TablesTable from "@/components/tsfile/TablesTable.vue";
 import FileViewNav from "@/components/tsfile/FileViewNav.vue";
-import PageHeader from "@/components/layout/PageHeader.vue";
 import { useFileStore } from "@/stores/tsfile/file";
 import { decodeFileId } from "@/utils/fileId";
+import { formatFileSize } from "@/utils/formatSize";
 
 const route = useRoute();
 const router = useRouter();
@@ -44,6 +44,8 @@ const fileId = computed(() => route.params.fileId as string);
 // 页面刷新时从 localStorage 恢复 currentFile，必须在 watcher (immediate) 之前执行
 fileStore.restoreCurrentFile(fileId.value);
 const metadata = ref<TsFileMetadata | null>(null);
+/** 页头展示的文件大小（字节），由元数据接口带回来 */
+const fileSize = computed(() => metadata.value?.fileSize ?? 0);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const activeTab = ref("rowGroups");
@@ -173,11 +175,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col h-full">
-    <PageHeader :title="t('tsfile.metadata.title')" :subtitle="displayFileName">
-      <template #actions>
-        <FileViewNav :file-id="fileId" />
-      </template>
-    </PageHeader>
+    <FileViewNav :file-id="fileId" active="metadata" />
+    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-body">
+      <span>{{ t("tsfile.common.fileInfo", { name: displayFileName }) }}</span>
+      <span v-if="fileSize > 0" class="tnum">
+        {{ t("tsfile.common.fileSize", { size: formatFileSize(fileSize) }) }}
+      </span>
+    </div>
     <template v-if="error">
       <div class="tc-panel mb-3">
         <div class="flex items-start justify-between gap-3 p-4">

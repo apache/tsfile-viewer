@@ -136,6 +136,8 @@ export interface DeviceMeasurements {
 export interface TsFileMetadata {
   fileId: string;
   version: string;
+  /** 文件在磁盘上的大小（字节），随元数据接口一起返回 */
+  fileSize?: number;
   timeRange: TimeRange;
   deviceCount: number;
   measurementCount: number;

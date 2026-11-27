@@ -34,6 +34,8 @@
       "apply": "Apply",
       "close": "Close",
       "back": "Back",
+      "fileInfo": "File: {name}",
+      "fileSize": "Size: {size}",
       "next": "Next",
       "previous": "Previous",
       "noData": "No Data",
@@ -251,7 +253,7 @@
       "tooManySeries": "Too many series to render ({count}; limit {max})",
       "tooManySeriesDescription": "Drawing too many lines at once can freeze or crash the page. Reduce the selected fields/devices in the filter above to {max} series or fewer, then view the chart.",
       "seriesTruncated": "Showing the first {max} series by default ({omitted} more not shown)",
-      "seriesTruncatedDescription": "The chart draws at most {max} lines at a time and ignores the rest. To inspect other fields, select fewer fields above and apply the filter again."
+      "seriesTruncatedDescription": "The chart draws at most {max} lines at a time and ignores the rest. One line is one device + field pair, so narrow the selected devices or fields above and apply the filter again."
     },
     "scan": {
       "title": "File Scan",

@@ -173,6 +173,13 @@ async function loadMetadata() {
   if (!props.fileId) return;
   loading.value = true;
   error.value = null;
+  // 换文件时先清掉上一个文件的筛选：时间范围/高级条件不会自己过期，
+  // 留着就会带着旧文件的设定去查新文件
+  selectedDevice.value = "";
+  selectedMeasurements.value = [];
+  timeRange.value = null;
+  selectedQuickRange.value = null;
+  advancedConditions.value = [];
   try {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;

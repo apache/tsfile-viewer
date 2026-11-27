@@ -178,13 +178,12 @@ onBeforeUnmount(() => {
 // 折叠展开与数据变化都会改变第一个分区的位置，需要重新实测
 watch([activeKeys, () => props.tables], () => void nextTick(measure), { deep: true });
 
-// 默认只展开第一张表：表多的文件全部展开既没有可读性，也会把折叠区撑到几万像素高
+// 默认只展开第一张表：表多的文件全部展开既没有可读性，也会把折叠区撑到几万像素高。
+// 表集合变化（换文件）时同样重置，否则会残留上一个文件的展开项、看起来一张都没展开。
 watch(
   () => props.tables,
   (tables) => {
-    if (tables.length > 0 && activeKeys.value.length === 0) {
-      activeKeys.value = [tables[0].tableName];
-    }
+    activeKeys.value = tables.length > 0 ? [tables[0].tableName] : [];
   },
   { immediate: true },
 );

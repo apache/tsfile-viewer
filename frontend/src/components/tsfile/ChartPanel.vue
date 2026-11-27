@@ -80,8 +80,9 @@ let chartInstance: echarts.ECharts | null = null;
 const chartHeight = ref(500);
 
 function calcChartHeight() {
-  // Fill remaining viewport: subtract header(64) + filter(~140) + chart title(40) + padding(60)
-  chartHeight.value = Math.max(400, window.innerHeight - 310);
+  // Fill the remaining viewport: header(64) + view menu(~49) + filter(~140) + chart title(40)
+  // + padding(60)。改动这里的分项时保持与视图的纵向布局同步，否则图表会顶出屏幕。
+  chartHeight.value = Math.max(400, window.innerHeight - 360);
 }
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
