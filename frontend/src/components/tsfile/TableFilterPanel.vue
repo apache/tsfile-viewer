@@ -154,17 +154,6 @@ const measurementOptions = computed(() => {
 
 const numericTypes = new Set(['INT32', 'INT64', 'FLOAT', 'DOUBLE', 'BOOLEAN']);
 
-// 图表模式下默认展示的序列数上限（避免一次性绘制数千条折线导致页面卡死）
-const CHART_DEFAULT_SERIES = 8;
-
-// 取某张表前 N 个数值字段，作为图表默认序列
-function defaultChartMeasurements(table: Table | undefined): string[] {
-  if (!table) return [];
-  return table.fieldColumns
-    .filter((c) => c.name && numericTypes.has(c.dataType?.toUpperCase() || ''))
-    .map((c) => c.name)
-    .slice(0, CHART_DEFAULT_SERIES);
-}
 
 const measurementSelectOptions = computed(() => {
   if (!props.chartMode) {
@@ -200,20 +189,12 @@ async function loadMetadata() {
     const response = await metaApi.getMetadata(props.fileId);
     metadata.value = response as TsFileMetadata;
 
-    // 自动选择第一个表
+    // 自动选择第一个表；图表模式不再自动挑测点、也不再自动查询，
+    // 否则用户「什么都没选」却看到已套用的条件（换文件时尤其容易误判成带了上一个文件的条件）
     if (tableOptions.value.length > 0) {
       const firstTable = tableOptions.value[0];
       if (firstTable) {
         selectedTable.value = firstTable.value;
-        // In chart mode, auto-select all numeric fields and trigger query
-        if (props.chartMode) {
-          const table = metadata.value?.tables?.find((t) => t.tableName === firstTable.value);
-          if (table) {
-            // 默认仅展示前若干条数值序列，避免一次性绘制数千条折线
-            selectedMeasurements.value = defaultChartMeasurements(table);
-            applyFilters();
-          }
-        }
       }
     }
   } catch (error_: unknown) {
@@ -281,11 +262,6 @@ function applyFilters() {
     filters.devices = selectedDevices.value;
   }
 
-  // In chart mode, default to the first few numeric fields if none selected
-  if (props.chartMode && selectedMeasurements.value.length === 0 && selectedTable.value) {
-    const table = metadata.value?.tables?.find((t) => t.tableName === selectedTable.value);
-    selectedMeasurements.value = defaultChartMeasurements(table);
-  }
 
   if (selectedMeasurements.value.length > 0) {
     filters.measurements = selectedMeasurements.value;
